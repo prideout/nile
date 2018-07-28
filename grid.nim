@@ -8,6 +8,23 @@ import strutils
 import strformat
 import math
 
+type Filter = object
+    radius: float
+    function: proc (x: float): float
+
+let FilterHermite* = Filter(radius: 1, function: proc (x: float): float =
+    if x >= 1.0: return 0
+    2 * x * x * x - 3 * x * x + 1)
+
+let FilterTriangle* = Filter(radius: 1, function: proc (x: float): float =
+    if x >= 1.0: return 0
+    1.0 - x)
+
+let FilterGaussian* = Filter(radius: 2, function: proc (x: float): float =
+    const scale = 1.0f / sqrt(0.5f * math.PI)
+    if x >= 2.0: return 0
+    exp(-2 * x * x) * scale)
+
 # https://github.com/stavenko/nim-glm
 # https://github.com/unicredit/neo
 # http://entropymine.com/imageworsener/pixelmixing/
@@ -213,6 +230,62 @@ proc resizeNearestFilter*(g: Grid, width, height: int): Grid =
 # Resizes an image by choosing nearest pixels from the source image (does no filtering whatsoever).
 proc resizeNearestFilter*(g: Grid, scale: int): Grid =
     g.resizeNearestFilter(g.width * scale, g.height * scale)
+
+# Regardless of filter type, any resizing operation executes a Multiply-Accumulate (Macc) more
+# than anything else. This can be described as:
+#       targetRow[targetColumn] += sourceRow[sourceColumn] * filterWeight
+# The operands that can be cached from row to row are the two indices and the weight.
+type MaccOp = tuple[targetColumn: int, sourceColumn: int, filterWeight: float]
+
+# Generates a list of MACC instructions that results in the transformation of a sequence of length
+# "sourceLen" into a sequence of length "targetLen" using the specified filter function.
+proc computeMaccOps(targetLen, sourceLen: int; filter: Filter): seq[MaccOp] =
+    result = newSeq[MaccOp]()
+    let
+        targetDelta = 1 / float(targetLen)
+        sourceDelta = 1 / float(sourceLen)
+    var x = 0.0f
+    for targetIndex in 0..<targetLen:
+        let
+            minx = x - filter.radius * sourceDelta / 2
+            maxx = x + filter.radius * sourceDelta / 2
+            minsi = int(minx * float(sourceLen))
+            maxsi = int(ceil(maxx * float(sourceLen)))
+        var
+            nsamples = 0
+            weightSum = 0.0f
+        for si in minsi..maxsi:
+            if si < 0 or si >= sourceLen: continue
+            let
+                sx = float(si) * sourceDelta
+                weight = filter.function(x - sx)
+            if weight != 0:
+                result.add (targetIndex, si, weight)
+                weightSum += weight
+                inc nsamples
+        if weightSum > 0:
+            while nsamples > 0:
+                result[result.len() - nsamples].filterWeight /= weightSum
+                dec nsamples
+        x += targetDelta
+
+# Resizes an image with the given filter.
+proc resize*(source: Grid, width, height: int, filter: Filter): Grid =
+    # First resize horizontally.
+    let horizontal = newGrid(width, source.height)
+    var ops = computeMaccOps(width, source.width, filter)
+    for ty in 0..<horizontal.height:
+        for tx, sx, weight in ops.items():
+            horizontal.setPixel(tx, ty, source.getPixel(sx, ty) * weight)
+    # Next resize vertically.
+    if true:
+        result = horizontal
+    else:
+        result = newGrid(width, height)
+        ops = computeMaccOps(height, source.height, filter)
+        for tx in 0..<width:
+            for ty, sy, weight in ops.items():
+                result.setPixel(tx, ty, source.getPixel(tx, sy) * weight)
 
 # Stacks two arrays horizontally (column wise).
 proc hstack*(a: Grid, b: Grid): Grid =

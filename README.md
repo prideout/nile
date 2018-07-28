@@ -10,6 +10,8 @@ For more information, read [the docs]().
 
 # TODO
 
+Test "resize" using a very simple one-row image.
+
 generateGradientNoise
 
 addBorder
