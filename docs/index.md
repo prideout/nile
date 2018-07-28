@@ -1,22 +1,28 @@
 # Quick start
 
-**nile** is a library for manipulating and generating images. It is written purely in nim, but
+**Nile** is a library for manipulating and generating images. It is written purely in nim, but
 depends on other packages for reading and writing image files, such as **nimPNG**.
 
 ## Overview
 
-In nile parlance, a **Grid** is a two-dimensional array of scalar floating-point data. It usually
-holds one of the RGB color planes or an alpha mask, but it could represent anything you like, such
+Nile's **Grid** object is a two-dimensional array of scalar floating-point data. It usually
+holds one of the RGB color planes or an alpha mask, but it can represent anything you like, such
 as a height map.
 
-<!-- Grids can serialize itself as npy files, but not image files. (not good for normal maps...) -->
+<!--
+  Grids can serialize itself as npy or tiff files, but not image files?
+  Not good for normal maps...
+-->
 
-As a user, you'll probably be mostly be interacting with **Image**, which wraps a list of grids
-tagged with semantics such as RED or ALPHA, as well as individual animation frames.
-This class offers an easy-to-use high level interface for working with image files and videos.
+As a user, you'll mostly interact with **Image**, which is a container of grids that exposes an
+easy-to-use API for working with image files and videos.
 
-Nile also offers a **Canvas** class for creating simple vector drawings. You can use this to fill a
-region with color or draw lines.
+An image associates each grid with a semantic such as RED or ALPHA, and potentially groups them into
+animation frames. Behind the scenes, it can evict grids from memory or load them in lazily, but
+this behavior is shielded from users.
+
+Nile also defines a **Canvas** object for creating simple vector drawings. You can use this to fill
+a region with color or draw lines.
 
 ## Examples
 

@@ -73,10 +73,16 @@ proc min*(g: Grid): float = foldl(g.data, min(a, b), high(float))
 proc max*(g: Grid): float = foldl(g.data, max(a, b), low(float))
 
 # Sets the pixel value at the given column and row.
-proc setPixel*(g: Grid, x, y: int, k: float = 1): void = g.data[y * g.width + x] = k
+proc setPixel*(g: Grid, x, y: int, k: float = 1): void =
+    doAssert(x >= 0 and x < g.width)
+    doAssert(y >= 0 and y < g.height)
+    g.data[y * g.width + x] = k
 
 # Gets the pixel value at the given column and row.
-proc getPixel*(g: Grid, x, y: int): float = g.data[y * g.width + x]
+proc getPixel*(g: Grid, x, y: int): float =
+    doAssert(x >= 0 and x < g.width)
+    doAssert(y >= 0 and y < g.height)
+    g.data[y * g.width + x]
 
 # Takes floating point coordinates in [0,+1] and returns the nearest pixel value.
 proc sampleNearest(g: Grid, x, y: float): float =
@@ -96,7 +102,7 @@ proc blitFrom*(dst: Grid, src: Grid; dstx, dsty: int; left, top, right, bottom: 
 
 # Draws single-pixel gridlines such that "ncols ⨯ nrows" cells have borders.
 # Increases the width and height of the grid by 1 pixel.
-proc drawGrid*(g: Grid; ncols, nrows: int; value: float): Grid =
+proc drawGrid*(g: Grid; ncols, nrows: int; value: float = 0): Grid =
     result = newGrid(g.width + 1, g.height + 1)
     result.blitFrom(g, 0, 0, 0, 0, g.width, g.height)
     for row in 0..<nrows:
@@ -111,54 +117,69 @@ proc drawGrid*(g: Grid; ncols, nrows: int; value: float): Grid =
 # Computes an average value over a viewport in [0,+1] and accounts for pixel squares that are
 # only partially covered by the viewport.
 proc computeAverage*(g: Grid; left, top, right, bottom: float): float =
-    let x0 = left * float(g.width)
-    let y0 = top * float(g.height)
-    let x1 = right * float(g.width)
-    let y1 = bottom * float(g.height)
+    let
+        x0 = left * float(g.width)
+        y0 = top * float(g.height)
+        x1 = right * float(g.width)
+        y1 = bottom * float(g.height)
+        inner_col0 = int(ceil(x0)).clamp(0, g.width - 1)
+        inner_row0 = int(ceil(y0)).clamp(0, g.height - 1)
+        inner_col1 = int(floor(x1)).clamp(0, g.width - 1)
+        inner_row1 = int(floor(y1)).clamp(0, g.height - 1)
+        outer_col0 = int(floor(x0)).clamp(0, g.width - 1)
+        outer_col1 = int(ceil(x1)).clamp(0, g.width - 1)
+        outer_row0 = int(floor(y0)).clamp(0, g.height - 1)
+        outer_row1 = int(ceil(y1)).clamp(0, g.height - 1)
+    var
+        area = 0.0f
+        total = 0.0f
     # First add up the pixel squares that lie completely inside the viewport.
-    let inner_col0 = int(ceil(x0)).clamp(0, g.width - 1)
-    let inner_row0 = int(ceil(y0)).clamp(0, g.height - 1)
-    let inner_col1 = int(floor(x1)).clamp(0, g.width - 1)
-    let inner_row1 = int(floor(y1)).clamp(0, g.height - 1)
-    var area = 0.0f
-    var total = 0.0f
     for col in inner_col0..inner_col1:
         for row in inner_row0..inner_row1:
             area += 1.0
             total += g.getPixel(col, row)
-    # Left edge pixels with fractional coverage.
-    let outer_col0 = int(floor(x0)).clamp(0, g.width - 1)
-    if outer_col0 < inner_col0:
-        let f = float(inner_col0) - x0
+    # Determine the amount of fractional overhang on all 4 sides.
+    let
+        w = float(inner_col0) - x0
+        e = fmod(x1, 1)
+        n = float(inner_row0) - y0
+        s = fmod(y1, 1)
+    # Left column of pixels with fractional coverage.
+    if w > 0:
         for row in inner_row0..inner_row1:
-            area += f
-            total += f * g.getPixel(outer_col0, row)
-    # Right edge pixels with fractional coverage.
-    let outer_col1 = int(ceil(x1)).clamp(0, g.width - 1)
-    if outer_col1 > inner_col1:
-        let f = x1 - float(inner_col1)
+            area += w
+            total += w * g.getPixel(outer_col0, row)
+    # Right column of pixels with fractional coverage.
+    if e > 0:
         for row in inner_row0..inner_row1:
-            area += f
-            total += f * g.getPixel(outer_col1, row)
-    # Top edge pixels with fractional coverage.
-    let outer_row0 = int(floor(y0)).clamp(0, g.height - 1)
-    if outer_row0 < inner_row0:
-        let f = float(inner_row0) - y0
+            area += e
+            total += e * g.getPixel(outer_col1, row)
+    # Top row of pixels with fractional coverage.
+    if n > 0:
         for col in inner_col0..inner_col1:
-            area += f
-            total += f * g.getPixel(col, outer_row0)
-    # Bottom edge pixels with fractional coverage.
-    let outer_row1 = int(ceil(y1)).clamp(0, g.height - 1)
-    if outer_row1 > inner_row1:
-        let f = y1 - float(inner_row1)
+            area += n
+            total += n * g.getPixel(col, outer_row0)
+    # Bottom row of pixels with fractional coverage.
+    if s > 0:
         for col in inner_col0..inner_col1:
-            area += f
-            total += f * g.getPixel(col, outer_row1)
-    # Corners
-    let w = float(inner_col0) - x0
-    let e = x1 - float(inner_col1)
-    let n = float(inner_row0) - y0
-    let s = y1 - float(inner_row1)
+            area += s
+            total += s * g.getPixel(col, outer_row1)
+    # Northwest corner.
+    if w > 0 and n > 0:
+        area += w * n
+        total += w * n * g.getPixel(outer_col0, outer_row0)
+    # Southwest corner.
+    if w > 0 and s > 0:
+        area += w * s
+        total += w * s * g.getPixel(outer_col0, outer_row1)
+    # Northeast corner.
+    if e > 0 and n > 0:
+        area += e * n
+        total += e * n * g.getPixel(outer_col1, outer_row0)
+    # Southeast corner.
+    if s > 0 and e > 0:
+        area += s * e
+        total += s * e * g.getPixel(outer_col1, outer_row1)
     echo fmt"{x0:.02},{y0:.02} => {x1:.02},{y1:.02}"
     echo fmt"   n={n:.02} s={s:.02} e={e:.02} w={w:.02}"
     total / area
@@ -211,6 +232,7 @@ proc savePNG(g: Grid, filename: string): void =
     discard savePNG(filename, u8data, LCT_GREY, 8, g.width, g.height)
 
 if isMainModule:
+    let diagramScale = 16
     let original = 1 - newGrid("""
         00000000
         00111100
@@ -221,11 +243,11 @@ if isMainModule:
         00100000
         00000000""")
     original.setPixel(7, 7, 0.5)
-    # original.resizeNearestFilter(scale = 16).drawGrid(8, 8, 0)
-    #     .savePNG("original.png")
-    # original.resizeBoxFilter(11, 11).resizeNearestFilter(scale = 16).drawGrid(11, 11, 0)
+    original.resizeNearestFilter(diagramScale).drawGrid(8, 8, 0)
+        .savePNG("source.png")
+    # original.resizeBoxFilter(11, 11).resizeNearestFilter(diagramScale).drawGrid(11, 11)
     #     .savePNG("boxMagnify.png")
-    original.resizeBoxFilter(7, 7).resizeNearestFilter(scale = 16).drawGrid(7, 7, 0)
+    original.resizeBoxFilter(8, 8).resizeNearestFilter(diagramScale).drawGrid(8, 8)
         .savePNG("boxSmoke.png")
-    # original.resizeBoxFilter(5, 5).resizeNearestFilter(scale = 16).drawGrid(5, 5, 0)
+    # original.resizeBoxFilter(5, 5).resizeNearestFilter(diagramScale).drawGrid(5, 5)
     #     .savePNG("boxMinify.png")
