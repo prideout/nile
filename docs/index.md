@@ -1,7 +1,9 @@
 # Quick start
 
-**Nile** is a library for manipulating and generating images. It is written purely in nim, but
-depends on other packages for reading and writing image files, such as **nimPNG**.
+**Nile** is a library for manipulating and generating images. It is written purely in nim, and
+has dependencies on just a couple other packages for reading and writing image files (**nimPNG**).
+
+Nile is hosted on GitHub at [prideout/nile](https://github.com/prideout/nile).
 
 ## Overview
 
