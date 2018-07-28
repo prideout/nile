@@ -1,5 +1,7 @@
 #!/usr/bin/env nim c -d:release --boundChecks:off --run
 
+#!/usr/bin/env nim c --debugger:native --run
+
 import nimPNG
 import sequtils
 import strutils
@@ -122,14 +124,14 @@ proc computeAverage*(g: Grid; left, top, right, bottom: float): float =
         y0 = top * float(g.height)
         x1 = right * float(g.width)
         y1 = bottom * float(g.height)
-        inner_col0 = int(ceil(x0)).clamp(0, g.width - 1)
-        inner_row0 = int(ceil(y0)).clamp(0, g.height - 1)
-        inner_col1 = int(floor(x1)).clamp(0, g.width - 1)
-        inner_row1 = int(floor(y1)).clamp(0, g.height - 1)
-        outer_col0 = int(floor(x0)).clamp(0, g.width - 1)
-        outer_col1 = int(ceil(x1)).clamp(0, g.width - 1)
-        outer_row0 = int(floor(y0)).clamp(0, g.height - 1)
-        outer_row1 = int(ceil(y1)).clamp(0, g.height - 1)
+        inner_col0 = int(ceil(x0)).max(0)
+        inner_row0 = int(ceil(y0)).max(0)
+        inner_col1 = int(floor(x1)).min(g.width) - 1
+        inner_row1 = int(floor(y1)).min(g.height) - 1
+        outer_col0 = int(floor(x0)).max(0)
+        outer_row0 = int(floor(y0)).max(0)
+        outer_col1 = int(ceil(x1)).min(g.width) - 1
+        outer_row1 = int(ceil(y1)).min(g.height) - 1
     var
         area = 0.0f
         total = 0.0f
@@ -141,47 +143,37 @@ proc computeAverage*(g: Grid; left, top, right, bottom: float): float =
     # Determine the amount of fractional overhang on all 4 sides.
     let
         w = float(inner_col0) - x0
-        e = fmod(x1, 1)
+        e = x1 - float(outer_col1)
         n = float(inner_row0) - y0
-        s = fmod(y1, 1)
+        s = y1 - float(outer_row1)
     # Left column of pixels with fractional coverage.
     if w > 0:
         for row in inner_row0..inner_row1:
-            area += w
-            total += w * g.getPixel(outer_col0, row)
+            area += w; total += w * g.getPixel(outer_col0, row)
     # Right column of pixels with fractional coverage.
     if e > 0:
         for row in inner_row0..inner_row1:
-            area += e
-            total += e * g.getPixel(outer_col1, row)
+            area += e; total += e * g.getPixel(outer_col1, row)
     # Top row of pixels with fractional coverage.
     if n > 0:
         for col in inner_col0..inner_col1:
-            area += n
-            total += n * g.getPixel(col, outer_row0)
+            area += n; total += n * g.getPixel(col, outer_row0)
     # Bottom row of pixels with fractional coverage.
     if s > 0:
         for col in inner_col0..inner_col1:
-            area += s
-            total += s * g.getPixel(col, outer_row1)
+            area += s; total += s * g.getPixel(col, outer_row1)
     # Northwest corner.
     if w > 0 and n > 0:
-        area += w * n
-        total += w * n * g.getPixel(outer_col0, outer_row0)
+        area += w * n; total += w * n * g.getPixel(outer_col0, outer_row0)
     # Southwest corner.
     if w > 0 and s > 0:
-        area += w * s
-        total += w * s * g.getPixel(outer_col0, outer_row1)
+        area += w * s; total += w * s * g.getPixel(outer_col0, outer_row1)
     # Northeast corner.
     if e > 0 and n > 0:
-        area += e * n
-        total += e * n * g.getPixel(outer_col1, outer_row0)
+        area += e * n; total += e * n * g.getPixel(outer_col1, outer_row0)
     # Southeast corner.
     if s > 0 and e > 0:
-        area += s * e
-        total += s * e * g.getPixel(outer_col1, outer_row1)
-    echo fmt"{x0:.02},{y0:.02} => {x1:.02},{y1:.02}"
-    echo fmt"   n={n:.02} s={s:.02} e={e:.02} w={w:.02}"
+        area += s * e; total += s * e * g.getPixel(outer_col1, outer_row1)
     total / area
 
 # Resamples the given image using a technique sometimes called "pixel mixing".
@@ -252,21 +244,29 @@ proc savePNG(g: Grid, filename: string): void =
     discard savePNG(filename, u8data, LCT_GREY, 8, g.width, g.height)
 
 if isMainModule:
-    let diagramScale = 16
+    const diagramScale = 16
+
     let original = 1 - newGrid("""
         00000000
         00111100
-        00100000
-        00111000
+        00100100
+        00111100
         00100000
         00100000
         00100000
         00000000""")
     original.setPixel(7, 7, 0.5)
-    let src = original.resizeNearestFilter(diagramScale).drawGrid(8, 8)
-    # original.resizeBoxFilter(11, 11).resizeNearestFilter(diagramScale).drawGrid(11, 11)
-    #     .savePNG("boxMagnify.png")
-    let smoke = original.resizeBoxFilter(8, 8).resizeNearestFilter(diagramScale).drawGrid(8, 8)
-    # original.resizeBoxFilter(5, 5).resizeNearestFilter(diagramScale).drawGrid(5, 5)
-    #     .savePNG("boxMinify.png")
-    hstack(src, smoke).savePNG("smoke.png")
+    var mag = original.resizeBoxFilter(11, 11).resizeNearestFilter(diagramScale).drawGrid(11, 11)
+    var ide = original.resizeBoxFilter(8, 8).resizeNearestFilter(diagramScale).drawGrid(8, 8)
+    var min = original.resizeBoxFilter(5, 5).resizeNearestFilter(diagramScale).drawGrid(5, 5)
+    min.savePNG("min0.png")
+    mag.savePNG("mag0.png")
+    ide.savePNG("ide0.png")
+
+    let tiny = newGrid("000 010 000")
+    min = tiny.resizeBoxFilter(1, 1).resizeNearestFilter(diagramScale).drawGrid(1, 1)
+    mag = tiny.resizeBoxFilter(5, 5).resizeNearestFilter(diagramScale).drawGrid(5, 5)
+    ide = tiny.resizeBoxFilter(9, 9).resizeNearestFilter(diagramScale).drawGrid(9, 9)
+    min.savePNG("min1.png")
+    mag.savePNG("mag1.png")
+    ide.savePNG("ide1.png")

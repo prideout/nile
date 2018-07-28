@@ -10,10 +10,9 @@ For more information, read [the docs]().
 
 # TODO
 
-fix the "smoke" test
-
 generateGradientNoise
 
+addBorder
 blitFrom
         http://rnduja.github.io/2015/10/21/scientific-nim/
         https://narimiran.github.io/2018/05/10/python-numpy-nim.html
