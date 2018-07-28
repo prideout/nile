@@ -1,8 +1,14 @@
+[![Build Status](https://travis-ci.org/prideout/lava.svg?branch=master)](https://travis-ci.org/prideout/lava)
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/prideout/clumpy/blob/master/LICENSE)
+
+**Nile** is a library for manipulating and generating images. It is written purely in nim, but
+depends on other packages for reading and writing image files, such as **nimPNG**.
+
+For more information, read [the docs]().
+
 <!--
 
 # TODO
-
-hstack and vstack
 
 fix the "smoke" test
 

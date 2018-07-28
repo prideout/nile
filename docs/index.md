@@ -9,11 +9,6 @@ Nile's **Grid** object is a two-dimensional array of scalar floating-point data.
 holds one of the RGB color planes or an alpha mask, but it can represent anything you like, such
 as a height map.
 
-<!--
-  Grids can serialize itself as npy or tiff files, but not image files?
-  Not good for normal maps...
--->
-
 As a user, you'll mostly interact with **Image**, which is a container of grids that exposes an
 easy-to-use API for working with image files and videos.
 

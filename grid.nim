@@ -213,8 +213,7 @@ proc resizeNearestFilter*(g: Grid, width, height: int): Grid =
     for row in 0..<height:
         x = 0
         for col in 0..<width:
-            let v = g.sampleNearest(x, y)
-            result.data[i] = v
+            result.data[i] = g.sampleNearest(x, y)
             inc i
             x += dx
         y += dy
@@ -222,6 +221,27 @@ proc resizeNearestFilter*(g: Grid, width, height: int): Grid =
 # Resizes an image by choosing nearest pixels from the source image (does no filtering whatsoever).
 proc resizeNearestFilter*(g: Grid, scale: int): Grid =
     g.resizeNearestFilter(g.width * scale, g.height * scale)
+
+# Stacks two arrays horizontally (column wise).
+proc hstack*(a: Grid, b: Grid): Grid =
+    doAssert(a.height == b.height)
+    result = newGrid(a.width + b.width, a.height)
+    for row in 0..<result.height:
+        for col in 0..<a.width:
+            result.setPixel(col, row, a.getPixel(col, row))
+        for col in 0..<b.width:
+            result.setPixel(col + a.width, row, b.getPixel(col, row))
+
+# Stacks two arrays vertically (row wise).
+proc vstack*(a: Grid, b: Grid): Grid =
+    doAssert(a.width == b.width)
+    result = newGrid(a.width, a.height + b.height)
+    for row in 0..<a.height:
+        for col in 0..<a.width:
+            result.setPixel(col, row, a.getPixel(col, row))
+    for row in 0..<b.height:
+        for col in 0..<b.width:
+            result.setPixel(col, row + a.height, b.getPixel(col, row))
 
 # Exports the floating-point data by clamping to [0, 1] and scaling to 255.
 proc savePNG(g: Grid, filename: string): void =
@@ -243,11 +263,10 @@ if isMainModule:
         00100000
         00000000""")
     original.setPixel(7, 7, 0.5)
-    original.resizeNearestFilter(diagramScale).drawGrid(8, 8, 0)
-        .savePNG("source.png")
+    let src = original.resizeNearestFilter(diagramScale).drawGrid(8, 8)
     # original.resizeBoxFilter(11, 11).resizeNearestFilter(diagramScale).drawGrid(11, 11)
     #     .savePNG("boxMagnify.png")
-    original.resizeBoxFilter(8, 8).resizeNearestFilter(diagramScale).drawGrid(8, 8)
-        .savePNG("boxSmoke.png")
+    let smoke = original.resizeBoxFilter(8, 8).resizeNearestFilter(diagramScale).drawGrid(8, 8)
     # original.resizeBoxFilter(5, 5).resizeNearestFilter(diagramScale).drawGrid(5, 5)
     #     .savePNG("boxMinify.png")
+    hstack(src, smoke).savePNG("smoke.png")
