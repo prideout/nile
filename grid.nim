@@ -8,6 +8,8 @@ import strutils
 import strformat
 import math
 
+const check = false
+
 type Filter = object
     radius: float
     function: proc (x: float): float
@@ -93,14 +95,23 @@ proc max*(g: Grid): float = foldl(g.data, max(a, b), low(float))
 
 # Sets the pixel value at the given column and row.
 proc setPixel*(g: Grid, x, y: int, k: float = 1): void =
-    doAssert(x >= 0 and x < g.width)
-    doAssert(y >= 0 and y < g.height)
+    if check:
+        doAssert(x >= 0 and x < g.width)
+        doAssert(y >= 0 and y < g.height)
     g.data[y * g.width + x] = k
 
+# Adds the given value into the texel
+proc addPixel*(g: Grid, x, y: int, k: float = 1): void =
+    if check:
+        doAssert(x >= 0 and x < g.width)
+        doAssert(y >= 0 and y < g.height)
+    g.data[y * g.width + x] += k
+    
 # Gets the pixel value at the given column and row.
 proc getPixel*(g: Grid, x, y: int): float =
-    doAssert(x >= 0 and x < g.width)
-    doAssert(y >= 0 and y < g.height)
+    if check:
+        doAssert(x >= 0 and x < g.width)
+        doAssert(y >= 0 and y < g.height)
     g.data[y * g.width + x]
 
 # Takes floating point coordinates in [0,+1] and returns the nearest pixel value.
@@ -132,7 +143,14 @@ proc drawGrid*(g: Grid; ncols, nrows: int; value: float = 0): Grid =
         let x = int(col * g.width / ncols)
         for y in 0..<g.height:
             result.setPixel(x, y, value)
-
+    if value != 0:
+        let y = result.height - 1
+        for x in 0..<result.width:
+            result.setPixel(x, y, value)
+        let x = result.width - 1
+        for y in 0..<result.height:
+            result.setPixel(x, y, value)
+    
 # Computes an average value over a viewport in [0,+1] and accounts for pixel squares that are
 # only partially covered by the viewport.
 proc computeAverage*(g: Grid; left, top, right, bottom: float): float =
@@ -244,11 +262,11 @@ proc computeMaccOps(targetLen, sourceLen: int; filter: Filter): seq[MaccOp] =
     let
         targetDelta = 1 / float(targetLen)
         sourceDelta = 1 / float(sourceLen)
-    var x = 0.0f
+    var x = targetDelta / 2
     for targetIndex in 0..<targetLen:
         let
-            minx = x - filter.radius * sourceDelta / 2
-            maxx = x + filter.radius * sourceDelta / 2
+            minx = x - filter.radius * sourceDelta
+            maxx = x + filter.radius * sourceDelta
             minsi = int(minx * float(sourceLen))
             maxsi = int(ceil(maxx * float(sourceLen)))
         var
@@ -257,8 +275,9 @@ proc computeMaccOps(targetLen, sourceLen: int; filter: Filter): seq[MaccOp] =
         for si in minsi..maxsi:
             if si < 0 or si >= sourceLen: continue
             let
-                sx = float(si) * sourceDelta
-                weight = filter.function(x - sx)
+                sx = (0.5 + float(si)) * sourceDelta
+                t = float(sourceLen) * abs(sx - x)
+                weight = filter.function(t)
             if weight != 0:
                 result.add (targetIndex, si, weight)
                 weightSum += weight
@@ -266,6 +285,7 @@ proc computeMaccOps(targetLen, sourceLen: int; filter: Filter): seq[MaccOp] =
         if weightSum > 0:
             while nsamples > 0:
                 result[result.len() - nsamples].filterWeight /= weightSum
+                let op = result[result.len() - nsamples]
                 dec nsamples
         x += targetDelta
 
@@ -276,7 +296,7 @@ proc resize*(source: Grid, width, height: int, filter: Filter): Grid =
     var ops = computeMaccOps(width, source.width, filter)
     for ty in 0..<horizontal.height:
         for tx, sx, weight in ops.items():
-            horizontal.setPixel(tx, ty, source.getPixel(sx, ty) * weight)
+            horizontal.addPixel(tx, ty, source.getPixel(sx, ty) * weight)
     # Next resize vertically.
     if true:
         result = horizontal
@@ -343,3 +363,9 @@ if isMainModule:
     min.savePNG("min1.png")
     mag.savePNG("mag1.png")
     ide.savePNG("ide1.png")
+
+    let row = newGrid("010")
+    mag = row.resize(5, 1, FilterHermite).resizeNearestFilter(diagramScale).drawGrid(5, 1, 1)
+    mag.savePNG("mag2.png")
+    mag = row.resize(5, 3, FilterHermite).resizeNearestFilter(diagramScale).drawGrid(5, 3, 1)
+    mag.savePNG("mag3.png")
