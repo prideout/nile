@@ -1,18 +1,7 @@
-#!/usr/bin/env nim c --debugger:native --run
-
-#!/usr/bin/env nim c -d:release --boundChecks:off --run
-
-import nimPNG
 import sequtils
 import strutils
-import strformat
 import math
-
-const check = true
-
-type Filter = object
-    radius: float
-    function: proc (x: float): float
+import private/utils
 
 let FilterHermite* = Filter(radius: 1, function: proc (x: float): float =
     if x >= 1.0: return 0
@@ -27,27 +16,23 @@ let FilterGaussian* = Filter(radius: 2, function: proc (x: float): float =
     if x >= 2.0: return 0
     exp(-2 * x * x) * scale)
 
-# https://github.com/stavenko/nim-glm
-# https://github.com/unicredit/neo
-# http://entropymine.com/imageworsener/pixelmixing/
-
 ## Simple two-dimensional image with floating-point luminance data.
 ## Values are stored in row-major (scanline) order, but coordinates and dimensions use
 ## X Y notation (i.e. columns ⨯ rows) with 0,0 being the top-left.
 type
-    Grid = ref object
-      data: seq[float]
-      width, height: int
+    Grid* = ref object
+      data*: seq[float]
+      width*, height*: int
 
 # Creates a grid full of zeros.
-proc newGrid(width, height: int): Grid =
+proc newGrid*(width, height: int): Grid =
     new(result)
     result.data = newSeq[float](width * height)
     result.width = width
     result.height = height
 
 # Consumes a multiline string composed of 0's and 1's.
-proc newGrid(pattern: string): Grid =
+proc newGrid*(pattern: string): Grid =
     new(result)
     for iter in tokenize(pattern):
         if not iter.isSep:
@@ -96,23 +81,17 @@ proc max*(g: Grid): float = foldl(g.data, max(a, b), low(float))
 
 # Sets the pixel value at the given column and row.
 proc setPixel*(g: Grid, x, y: int, k: float = 1): void =
-    if check:
-        doAssert(x >= 0 and x < g.width)
-        doAssert(y >= 0 and y < g.height)
+    assert(x >= 0 and x < g.width and y >= 0 and y < g.height)
     g.data[y * g.width + x] = k
 
 # Adds the given value into the texel
 proc addPixel*(g: Grid, x, y: int, k: float = 1): void =
-    if check:
-        doAssert(x >= 0 and x < g.width)
-        doAssert(y >= 0 and y < g.height)
+    assert(x >= 0 and x < g.width and y >= 0 and y < g.height)
     g.data[y * g.width + x] += k
     
 # Gets the pixel value at the given column and row.
 proc getPixel*(g: Grid, x, y: int): float =
-    if check:
-        doAssert(x >= 0 and x < g.width)
-        doAssert(y >= 0 and y < g.height)
+    assert(x >= 0 and x < g.width and y >= 0 and y < g.height)
     g.data[y * g.width + x]
 
 # Takes floating point coordinates in [0,+1] and returns the nearest pixel value.
@@ -250,45 +229,6 @@ proc resizeNearestFilter*(g: Grid, width, height: int): Grid =
 proc resizeNearestFilter*(g: Grid, scale: int): Grid =
     g.resizeNearestFilter(g.width * scale, g.height * scale)
 
-# Regardless of filter type, any resizing operation executes a Multiply-Accumulate (Macc) more
-# than anything else. This can be described as:
-#       targetRow[targetColumn] += sourceRow[sourceColumn] * filterWeight
-# The operands that can be cached from row to row are the two indices and the weight.
-type MaccOp = tuple[targetColumn: int, sourceColumn: int, filterWeight: float]
-
-# Generates a list of MACC instructions that results in the transformation of a sequence of length
-# "sourceLen" into a sequence of length "targetLen" using the specified filter function.
-proc computeMaccOps(targetLen, sourceLen: int; filter: Filter): seq[MaccOp] =
-    result = newSeq[MaccOp]()
-    let
-        targetDelta = 1 / float(targetLen)
-        sourceDelta = 1 / float(sourceLen)
-    var x = targetDelta / 2
-    for targetIndex in 0..<targetLen:
-        let
-            minx = x - filter.radius * sourceDelta
-            maxx = x + filter.radius * sourceDelta
-            minsi = int(minx * float(sourceLen))
-            maxsi = int(ceil(maxx * float(sourceLen)))
-        var
-            nsamples = 0
-            weightSum = 0.0f
-        for si in minsi..maxsi:
-            if si < 0 or si >= sourceLen: continue
-            let
-                sx = (0.5 + float(si)) * sourceDelta
-                t = float(sourceLen) * abs(sx - x)
-                weight = filter.function(t)
-            if weight != 0:
-                result.add (targetIndex, si, weight)
-                weightSum += weight
-                inc nsamples
-        if weightSum > 0:
-            while nsamples > 0:
-                result[result.len() - nsamples].filterWeight /= weightSum
-                dec nsamples
-        x += targetDelta
-
 # Resizes an image with the given filter.
 proc resize*(source: Grid, width, height: int, filter: Filter): Grid =
     # First resize horizontally.
@@ -340,54 +280,3 @@ proc vstack*(a: Grid, b: varargs[Grid]): Grid =
             for srow in 0..<g.height:
                 result.setPixel(col, trow, g.getPixel(col, srow))
                 inc trow
-
-# Exports the floating-point data by clamping to [0, 1] and scaling to 255.
-proc savePNG(g: Grid, filename: string): void =
-    let npixels = g.width * g.height
-    var u8data = newString(npixels)
-    for i in 0..<npixels:
-        u8data[i] = chr(int(g.data[i] * 255))
-    discard savePNG(filename, u8data, LCT_GREY, 8, g.width, g.height)
-
-if isMainModule:
-    const diagramScale = 16
-
-    let original = 1 - newGrid("""
-        00000000
-        00111100
-        00100100
-        00111100
-        00100000
-        00100000
-        00100000
-        00000000""")
-    original.setPixel(7, 7, 0.5)
-    var mag = original.resizeBoxFilter(11, 11).resizeNearestFilter(diagramScale).drawGrid(11, 11)
-    var ide = original.resizeBoxFilter(8, 8).resizeNearestFilter(diagramScale).drawGrid(8, 8)
-    var min = original.resizeBoxFilter(5, 5).resizeNearestFilter(diagramScale).drawGrid(5, 5)
-    min.savePNG("min0.png")
-    mag.savePNG("mag0.png")
-    ide.savePNG("ide0.png")
-
-    let tiny = newGrid("000 010 000")
-    min = tiny.resizeBoxFilter(1, 1).resizeNearestFilter(diagramScale).drawGrid(1, 1)
-    mag = tiny.resizeBoxFilter(5, 5).resizeNearestFilter(diagramScale).drawGrid(5, 5)
-    ide = tiny.resizeBoxFilter(9, 9).resizeNearestFilter(diagramScale).drawGrid(9, 9)
-    min.savePNG("min1.png")
-    mag.savePNG("mag1.png")
-    ide.savePNG("ide1.png")
-
-    let row = newGrid("010")
-    mag = row.resize(5, 1, FilterHermite).resizeNearestFilter(diagramScale).drawGrid(5, 1, 1)
-    mag.savePNG("mag2.png")
-    mag = tiny.resize(5, 5, FilterHermite).resizeNearestFilter(diagramScale).drawGrid(5, 5, 1)
-    mag.savePNG("mag3.png")
-    mag = tiny.resize(128, 128, FilterHermite).drawGrid(1, 1, 1)
-    mag.savePNG("mag4.png")
-
-    let nearest = original.resizeNearestFilter(1000, 1000).resizeBoxFilter(100, 100)
-    let hermite = original.resize(1000, 1000, FilterHermite).resizeBoxFilter(100, 100)
-    let gauss = original.resize(1000, 1000, FilterGaussian).resizeBoxFilter(100, 100)
-    let triangle = original.resize(1000, 1000, FilterTriangle).resizeBoxFilter(100, 100)
-    (1 - hstack(nearest, hermite, gauss, triangle)).drawGrid(4, 1, 1).savePNG("min2.png")
-    (0.2 + 0.5 * vstack(nearest, hermite, gauss, triangle)).drawGrid(1, 4, 1).savePNG("min3.png")

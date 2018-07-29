@@ -15,6 +15,9 @@ For more information, read [the docs]().
     https://nimble.directory/search?query=graphics
     http://rnduja.github.io/2015/10/21/scientific-nim/
     https://narimiran.github.io/2018/05/10/python-numpy-nim.html
+    https://github.com/stavenko/nim-glm
+    https://github.com/unicredit/neo
+    http://entropymine.com/imageworsener/pixelmixing/
 
 # TO BE DONE
 
