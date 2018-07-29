@@ -19,7 +19,7 @@ animation frames. Behind the scenes, it can evict grids from memory or load them
 this behavior is shielded from users.
 
 Nile also defines a **Canvas** object for creating simple vector drawings. You can use this to fill
-a region with color or draw lines.
+a region with color, or to draw Bézier curves.
 
 ## Examples
 

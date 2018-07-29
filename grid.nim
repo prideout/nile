@@ -1,6 +1,6 @@
-#!/usr/bin/env nim c -d:release --boundChecks:off --run
-
 #!/usr/bin/env nim c --debugger:native --run
+
+#!/usr/bin/env nim c -d:release --boundChecks:off --run
 
 import nimPNG
 import sequtils
@@ -8,7 +8,7 @@ import strutils
 import strformat
 import math
 
-const check = false
+const check = true
 
 type Filter = object
     radius: float
@@ -77,6 +77,7 @@ proc apply*(g:Grid, op: proc (x: var float): void): void = g.data.apply(op)
 
 # Math operators.
 proc `*`*(g: Grid, k: float): Grid = g.map(proc(f: float): float = f * k)
+proc `*`*(k: float, g: Grid): Grid = g.map(proc(f: float): float = f * k)
 proc `*=`*(g: Grid, k: float): void = g.apply(proc(f: var float): void = f *= k)
 proc `/`*(g: Grid, k: float): Grid = g * (1.0f / k)
 proc `/=`*(g: Grid, k: float): void = g *= (1.0f / k)    
@@ -285,7 +286,6 @@ proc computeMaccOps(targetLen, sourceLen: int; filter: Filter): seq[MaccOp] =
         if weightSum > 0:
             while nsamples > 0:
                 result[result.len() - nsamples].filterWeight /= weightSum
-                let op = result[result.len() - nsamples]
                 dec nsamples
         x += targetDelta
 
@@ -298,35 +298,48 @@ proc resize*(source: Grid, width, height: int, filter: Filter): Grid =
         for tx, sx, weight in ops.items():
             horizontal.addPixel(tx, ty, source.getPixel(sx, ty) * weight)
     # Next resize vertically.
-    if true:
-        result = horizontal
-    else:
-        result = newGrid(width, height)
-        ops = computeMaccOps(height, source.height, filter)
-        for tx in 0..<width:
-            for ty, sy, weight in ops.items():
-                result.setPixel(tx, ty, source.getPixel(tx, sy) * weight)
+    result = newGrid(width, height)
+    ops = computeMaccOps(height, source.height, filter)
+    var transpose = newSeq[float](source.height)
+    for tx in 0..<width:
+        for y in 0..<source.height:
+            transpose[y] = horizontal.getPixel(tx, y)
+        for ty, sy, weight in ops.items():
+            result.addPixel(tx, ty, transpose[sy] * weight)
 
-# Stacks two arrays horizontally (column wise).
-proc hstack*(a: Grid, b: Grid): Grid =
-    doAssert(a.height == b.height)
-    result = newGrid(a.width + b.width, a.height)
+# Stacks arrays horizontally (column wise).
+proc hstack*(a: Grid, b: varargs[Grid]): Grid =
+    var width = a.width
+    for g in items(b):
+        width += g.width
+    result = newGrid(width, a.height)
     for row in 0..<result.height:
         for col in 0..<a.width:
             result.setPixel(col, row, a.getPixel(col, row))
-        for col in 0..<b.width:
-            result.setPixel(col + a.width, row, b.getPixel(col, row))
+    for row in 0..<result.height:
+        var tcol = a.width
+        for g in items(b):
+            doAssert(a.height == g.height)
+            for scol in 0..<g.width:
+                result.setPixel(tcol, row, g.getPixel(scol, row))
+                inc tcol
 
-# Stacks two arrays vertically (row wise).
-proc vstack*(a: Grid, b: Grid): Grid =
-    doAssert(a.width == b.width)
-    result = newGrid(a.width, a.height + b.height)
-    for row in 0..<a.height:
-        for col in 0..<a.width:
+# Stacks arrays vertically (row wise).
+proc vstack*(a: Grid, b: varargs[Grid]): Grid =
+    var height = a.height
+    for g in items(b):
+        height += g.height
+    result = newGrid(a.width, height)
+    for col in 0..<result.width:
+        for row in 0..<a.height:
             result.setPixel(col, row, a.getPixel(col, row))
-    for row in 0..<b.height:
-        for col in 0..<b.width:
-            result.setPixel(col, row + a.height, b.getPixel(col, row))
+    for col in 0..<result.width:
+        var trow = a.height
+        for g in items(b):
+            doAssert(a.width == g.width)
+            for srow in 0..<g.height:
+                result.setPixel(col, trow, g.getPixel(col, srow))
+                inc trow
 
 # Exports the floating-point data by clamping to [0, 1] and scaling to 255.
 proc savePNG(g: Grid, filename: string): void =
@@ -367,5 +380,14 @@ if isMainModule:
     let row = newGrid("010")
     mag = row.resize(5, 1, FilterHermite).resizeNearestFilter(diagramScale).drawGrid(5, 1, 1)
     mag.savePNG("mag2.png")
-    mag = row.resize(5, 3, FilterHermite).resizeNearestFilter(diagramScale).drawGrid(5, 3, 1)
+    mag = tiny.resize(5, 5, FilterHermite).resizeNearestFilter(diagramScale).drawGrid(5, 5, 1)
     mag.savePNG("mag3.png")
+    mag = tiny.resize(128, 128, FilterHermite).drawGrid(1, 1, 1)
+    mag.savePNG("mag4.png")
+
+    let nearest = original.resizeNearestFilter(1000, 1000).resizeBoxFilter(100, 100)
+    let hermite = original.resize(1000, 1000, FilterHermite).resizeBoxFilter(100, 100)
+    let gauss = original.resize(1000, 1000, FilterGaussian).resizeBoxFilter(100, 100)
+    let triangle = original.resize(1000, 1000, FilterTriangle).resizeBoxFilter(100, 100)
+    (1 - hstack(nearest, hermite, gauss, triangle)).drawGrid(4, 1, 1).savePNG("min2.png")
+    (0.2 + 0.5 * vstack(nearest, hermite, gauss, triangle)).drawGrid(1, 4, 1).savePNG("min3.png")

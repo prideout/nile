@@ -18,17 +18,12 @@ For more information, read [the docs]().
 
 # TO BE DONE
 
-    Test "resize" using a very simple one-row image.
-
     generateGradientNoise
 
-    test cases!
-        let's keep it simple, no perceptual diff, just PPM or whatever:
-            http://paulbourke.net/dataformats/ppm/
-        https://github.com/myint/perceptualdiff
-        or compare_ssim in scikit
+    automate tests
+        keep it simple, just check in the PNG files and diff them with a simple nim program
 
-    addBorder
+    addBorder (default argument of 1)
     blitFrom
 
     reading / writing tiff and/or npy
