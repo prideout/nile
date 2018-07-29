@@ -1,6 +1,7 @@
+import math
 import sequtils
 import strutils
-import math
+
 import private/utils
 
 let FilterHermite* = Filter(radius: 1, function: proc (x: float): float =
@@ -51,11 +52,24 @@ proc newGrid*(pattern: string): Grid =
                 inc n
 
 # Returns a new grid with the results of op applied to every value.
-proc map*(g:Grid, op: proc (x: float): float): Grid =
+proc map*(g: Grid, op: proc (x: float): float): Grid =
     new(result)
     result.data = map(g.data, op)
     result.width = g.width
     result.height = g.height
+
+# Convenience template around the map proc to reduce typing.
+template mapIt*(g: Grid, op: untyped): Grid =
+    new(result)
+    result.data = newSeq[float](g.data.len)
+    result.width = g.width
+    result.height = g.height
+    var i = 0
+    let t = g.data
+    for it {.inject.} in t:
+        result.data[i] = op
+        inc i
+    result
 
 # Applies op to every item in g modifying it directly.
 proc apply*(g:Grid, op: proc (x: var float): void): void = g.data.apply(op)
@@ -280,3 +294,33 @@ proc vstack*(a: Grid, b: varargs[Grid]): Grid =
             for srow in 0..<g.height:
                 result.setPixel(col, trow, g.getPixel(col, srow))
                 inc trow
+
+type Viewport* = tuple[left, top, right, bottom: float32]
+
+# Creates a scalar field with C1 continuity whose values are roughly in [-0.8, +0.8]
+# The viewport that spans from [-1,-1] to [+1,+1] is a 2x2 grid of surflets.
+proc generateGradientNoise*(seed: int; width, height: int; viewport: Viewport): Grid =
+    result = newGrid(width, height)
+    let
+        table = newGradientNoiseTable(seed)
+        vpwidth = viewport.right - viewport.left
+        vpheight = viewport.bottom - viewport.top
+        dx = vpwidth / float32(width)
+        sx = viewport.left + dx / 2
+        dy = vpheight / float32(height)
+        sy = viewport.top + dy / 2
+    var i = 0
+    for row in 0..<height:
+        let y = sy - float32(row) * dy
+        for col in 0..<width:
+            let x = sx + float32(col) * dx
+            result.data[i] = table.computeNoiseValue(x, y, seed)
+            inc i
+
+# Creates a scalar field with C1 continuity whose values are roughly in [-0.8, +0.8]
+# Frequency of 1.0 corresponds to a 2x2 grid of surflets.
+proc generateGradientNoise*(seed: int; width, height: int; frequency: float32): Grid =
+    # TODO: pay attention to aspect ratio
+    let f = frequency
+    let viewport = (-f, -f, f, f)
+    generateGradientNoise(seed, width, height, viewport)

@@ -1,4 +1,5 @@
 nimcache
 *.png
-filters
 .vscode
+tests/*
+!tests/*.nim

@@ -1,6 +1,6 @@
-#!/usr/bin/env nim c -d:release --boundChecks:off --run
-
 #!/usr/bin/env nim c --debugger:native --run
+
+#!/usr/bin/env nim c -d:release --boundChecks:off --run
 
 import nimPNG
 import nile
@@ -10,7 +10,8 @@ proc savePNG(g: Grid, filename: string): void =
     let npixels = g.width * g.height
     var u8data = newString(npixels)
     for i in 0..<npixels:
-        u8data[i] = chr(int(g.data[i] * 255))
+        let v = g.data[i].clamp(0, 1)
+        u8data[i] = chr(int(v * 255))
     discard savePNG(filename, u8data, LCT_GREY, 8, g.width, g.height)
 
 const diagramScale = 16
@@ -54,3 +55,6 @@ let gauss = original.resize(1000, 1000, FilterGaussian).resizeBoxFilter(100, 100
 let triangle = original.resize(1000, 1000, FilterTriangle).resizeBoxFilter(100, 100)
 (1 - hstack(nearest, hermite, gauss, triangle)).drawGrid(4, 1, 1).savePNG("min2.png")
 (0.2 + 0.5 * vstack(nearest, hermite, gauss, triangle)).drawGrid(1, 4, 1).savePNG("min3.png")
+
+let grads = 0.5f + generateGradientNoise(0, 128, 128, 1.0f) * 0.5f
+grads.drawGrid(1, 1, 1).savePNG("grads1.png")

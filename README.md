@@ -23,6 +23,16 @@ For more information, read [the docs]().
 
     generateGradientNoise
 
+    float => float32, int => int32
+
+    use mapIt and applyIt
+
+    templatize the pattern of looping over rows, cols, and having "x y row col", e.g.
+        with pixels(grid):
+            pixel = pixel + 1.0f - x + y / float(row)
+
+    ----
+
     automate tests
         keep it simple, just check in the PNG files and diff them with a simple nim program
 
