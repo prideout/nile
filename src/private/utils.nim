@@ -1,6 +1,6 @@
+import hashes
 import math
 import random
-import strformat
 
 type Filter* = object
     radius*: float
@@ -23,14 +23,14 @@ type
         indices: seq[int32]
 
 proc fract(f: float32): float32 = f - floor(f)
-proc `*`(a: Vec2f, b: Vec2f): Vec2f = (a.x + b.x, a.y + b.y)
+proc `*`(a: Vec2f, b: Vec2f): Vec2f = (a.x * b.x, a.y * b.y)
 proc `*`(a: Vec2f, b: float32): Vec2f = (a.x * b, a.y * b)
 proc `+`(a: Vec2f, b: float32): Vec2f = (a.x + b, a.y + b)
 proc `-`(a: Vec2f, b: float32): Vec2f = (a.x - b, a.y - b)
 # proc `+`(a: Vec2f, b: Vec2f): Vec2f = (a.x + b.x, a.y + b.y)
 proc `-`(a: Vec2f, b: Vec2f): Vec2f = (a.x - b.x, a.y - b.y)
 proc dot(a: Vec2f, b: Vec2f): float32 = a.x * b.x + a.y * b.y
-proc `+`(a: Vec2i, b: int32): Vec2i = (a.x + b, a.y + b)
+# proc `+`(a: Vec2i, b: int32): Vec2i = (a.x + b, a.y + b)
 # proc `-`(a: Vec2i, b: int32): Vec2i = (a.x - b, a.y - b)
 proc `+`(a: Vec2i, b: Vec2i): Vec2i = (a.x + b.x, a.y + b.y)
 # proc `-`(a: Vec2i, b: Vec2i): Vec2i = (a.x - b.y, a.y - b.y)
@@ -46,18 +46,19 @@ proc newGradientNoiseTable*(seed: int): GradientNoiseTable =
         result.indices[i] = int32(i)
         result.gradients[i].x = cos(float32(i) * 2 * PI / float32(result.size))
         result.gradients[i].y = sin(float32(i) * 2 * PI / float32(result.size))
-    shuffle(result.indices)
+    var rnd = initRand(seed)
+    rnd.shuffle(result.indices)
 
 proc getGradient(table: GradientNoiseTable, p: Vec2i): Vec2f =
-    let
-        i = p.x
-        j = p.y
-        hash = table.indices[ ( table.indices[ i and table.mask ] + j ) and table.mask ]
-    table.gradients[hash]
+    var h: Hash = 0
+    h = h !& p.x
+    h = h !& p.y
+    h = (!$h)
+    table.gradients[table.indices[h and table.mask]]
 
-proc computeNoiseValue*(table: GradientNoiseTable, x, y: float32; seed: int): float =
+proc computeNoiseValue*(table: GradientNoiseTable, x, y: float32): float =
     let
-        i = (x: int32(floor(x)), y: int32(floor(y))) + int32(seed)
+        i = (x: int32(floor(x)), y: int32(floor(y)))
         f = (fract(x), fract(y))
         u = f*f*f*(f*(f*6.0f - 15.0f) + 10.0f)
         ga = table.getGradient(i + (0'i32,0'i32) )
@@ -68,7 +69,6 @@ proc computeNoiseValue*(table: GradientNoiseTable, x, y: float32; seed: int): fl
         vb = dot(gb, f - (1'f32,0'f32))
         vc = dot(gc, f - (0'f32,1'f32))
         vd = dot(gd, f - (1'f32,1'f32))
-    # echo fmt"{x:7.2}, {+y:7.2}  ====  {gb.x:7.2}, {+gb.y:7.2}   {+i.x:4} {+i.y:4}"
     va + u.x * (vb-va) + u.y * (vc-va) + u.x * u.y * (va-vb-vc+vd)
 
 # Generates a list of MACC instructions that results in the transformation of a sequence of length

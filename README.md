@@ -21,33 +21,52 @@ For more information, read [the docs]().
 
 # TO BE DONE
 
-    generateGradientNoise
+    Play with cairo
+        let surf = win32_surface_create(dc)
+        let cr = surf.create()
+        cr.set_line_width(2)
+        cr.rectangle(20, 20, 100, 100)
+        cr.set_source_rgb(0.6, 0.6, 0.6)
+        cr.fill_preserve
+        cr.set_source_rgb(0.3, 0.3, 0.3)
+        cr.stroke
 
-    float => float32, int => int32
+    Helpers
+        clipSegment
+        marchSegment
 
-    use mapIt and applyIt
+    Infinite Island
 
-    templatize the pattern of looping over rows, cols, and having "x y row col", e.g.
-        with pixels(grid):
-            pixel = pixel + 1.0f - x + y / float(row)
-
-    ----
+    Grid Improvements
+        float => float32, int => int32
+        use mapIt and applyIt
+        templatize the pattern of looping over rows, cols, and having "x y row col", e.g.
+            with pixels(grid):
+                pixel = pixel + 1.0f - x + y / float(row)
 
     automate tests
         keep it simple, just check in the PNG files and diff them with a simple nim program
 
-    addBorder (default argument of 1)
-    blitFrom
+    Grid Improvements
+        addBorder (default argument of 1)
+        blitFrom
+        save / load tiff and/or npy
 
-    reading / writing tiff and/or npy
+    Image
+        pillow suite of things
+        png and jpeg only
+        colorspace: linear / srgb
+        save takes CLAMP or NORMALIZE
 
-    clip_segment
-    march_segment
+    Remove Canvas from docs
+        https://github.com/memononen/nanosvg
 
     minilight / https://www.keithlantz.net/
 
-    canvas
-        https://github.com/memononen/nanosvg
+    open source & nimble
+        "The top level of the package source directory should contain at most one module, "
+        "named 'cairo.nim', but a file named 'cairowin32.nim' was found. This will be an error "
+        "in the future."
 
 # THE INFINITE ISLAND
 

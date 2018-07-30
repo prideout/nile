@@ -74,18 +74,37 @@ template mapIt*(g: Grid, op: untyped): Grid =
 # Applies op to every item in g modifying it directly.
 proc apply*(g:Grid, op: proc (x: var float): void): void = g.data.apply(op)
 
-# Math operators.
+# Addition.
+proc `+`*(k: float, g: Grid): Grid = g.map(proc(f: float): float = k + f)
+proc `+`*(g: Grid, k: float): Grid = k + g
+proc `+`*(a: Grid, b: Grid): Grid =
+    assert(a.width == b.width and a.height == b.height)
+    new(result)
+    result.data = zip(a.data, b.data).mapIt(it.a + it.b)
+    result.width = a.width
+    result.height = a.height
+proc `+=`*(g: Grid, k: float): void = g.apply(proc(f: var float): void = f += k)
+
+# Multiplication (component wise).
 proc `*`*(g: Grid, k: float): Grid = g.map(proc(f: float): float = f * k)
 proc `*`*(k: float, g: Grid): Grid = g.map(proc(f: float): float = f * k)
+proc `*`*(a: Grid, b: Grid): Grid =
+    assert(a.width == b.width and a.height == b.height)
+    new(result)
+    result.data = zip(a.data, b.data).mapIt(it.a * it.b)
+    result.width = a.width
+    result.height = a.height
 proc `*=`*(g: Grid, k: float): void = g.apply(proc(f: var float): void = f *= k)
+
+# Misc other math ops.
 proc `/`*(g: Grid, k: float): Grid = g * (1.0f / k)
 proc `/=`*(g: Grid, k: float): void = g *= (1.0f / k)    
-proc `+`*(k: float, g: Grid): Grid = g.map(proc(f: float): float = k + f)
 proc `-`*(k: float, g: Grid): Grid = g.map(proc(f: float): float = k - f)
-proc `+`*(g: Grid, k: float): Grid = k + g
 proc `-`*(g: Grid, k: float): Grid = g + (-k)
-proc `+=`*(g: Grid, k: float): void = g.apply(proc(f: var float): void = f += k)
 proc `-=`*(g: Grid, k: float): void = g.apply(proc(f: var float): void = f += k)
+
+proc step*(g: Grid, k: float): Grid = g.map(proc(f: float): float =
+    if f <= k: 0 else: 1)
 
 # Finds the smallest value in the entire grid.
 proc min*(g: Grid): float = foldl(g.data, min(a, b), high(float))
@@ -261,6 +280,15 @@ proc resize*(source: Grid, width, height: int, filter: Filter): Grid =
         for ty, sy, weight in ops.items():
             result.addPixel(tx, ty, transpose[sy] * weight)
 
+# Create an image from a rectangular region.
+proc crop*(source: Grid, left, top, right, bottom: int): Grid =
+    result = newGrid(right - left, bottom - top)
+    var i = 0
+    for row in 0..<result.height:
+        for col in 0..<result.width:
+            result.data[i] = source.getPixel(left + col, top + row)
+            inc i
+
 # Stacks arrays horizontally (column wise).
 proc hstack*(a: Grid, b: varargs[Grid]): Grid =
     var width = a.width
@@ -314,7 +342,7 @@ proc generateGradientNoise*(seed: int; width, height: int; viewport: Viewport): 
         let y = sy - float32(row) * dy
         for col in 0..<width:
             let x = sx + float32(col) * dx
-            result.data[i] = table.computeNoiseValue(x, y, seed)
+            result.data[i] = table.computeNoiseValue(x, y)
             inc i
 
 # Creates a scalar field with C1 continuity whose values are roughly in [-0.8, +0.8]
