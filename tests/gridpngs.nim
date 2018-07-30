@@ -58,28 +58,3 @@ let triangle = original.resize(1000, 1000, FilterTriangle).resizeBoxFilter(100, 
 
 let grads = 0.5f + generateGradientNoise(42, 256, 256, 2.0f) * 0.5f
 grads.drawGrid(1, 1, 1).savePNG("grads1.png")
-let splat = tiny.resize(256, 256, FilterHermite)
-
-proc genIsland(seed: int): Grid =
-    let g = ((
-        generateGradientNoise(seed, 256, 256, 4.0f) +
-        generateGradientNoise(seed, 256, 256, 8.0f) / 2 +
-        generateGradientNoise(seed, 256, 256, 16.0f) / 4 +
-        generateGradientNoise(seed, 256, 256, 32.0f) / 8) +
-        splat * 0.5) * splat
-    return g.step(0.1) * 0.7 + 0.1
-
-let
-    r0 = 128 - 64
-    r1 = 128 + 64
-    a0 = genIsland(0).crop(r0, r0, r1, r1)
-    b0 = genIsland(1).crop(r0, r0, r1, r1)
-    c0 = genIsland(2).crop(r0, r0, r1, r1)
-    d0 = genIsland(3).crop(r0, r0, r1, r1)
-    a1 = genIsland(4).crop(r0, r0, r1, r1)
-    b1 = genIsland(5).crop(r0, r0, r1, r1)
-    c1 = genIsland(6).crop(r0, r0, r1, r1)
-    d1 = genIsland(7).crop(r0, r0, r1, r1)
-
-vstack(hstack(a0, b0, c0, d0), hstack(a1, b1, c1, d1))
-    .drawGrid(4, 2, 0.3f).savePNG("islands.png")

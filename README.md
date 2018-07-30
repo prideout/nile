@@ -21,15 +21,11 @@ For more information, read [the docs]().
 
 # TO BE DONE
 
-    Play with cairo
-        let surf = win32_surface_create(dc)
-        let cr = surf.create()
-        cr.set_line_width(2)
-        cr.rectangle(20, 20, 100, 100)
-        cr.set_source_rgb(0.6, 0.6, 0.6)
-        cr.fill_preserve
-        cr.set_source_rgb(0.3, 0.3, 0.3)
-        cr.stroke
+    island.py
+        Overlay a small island shape with a color cairo image
+        Create minimal Image class
+            promote Canvas out of test
+            However keep the PNG stuff in the test
 
     Helpers
         clipSegment
