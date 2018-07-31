@@ -22,13 +22,12 @@ For more information, read [the docs]().
 # TO BE DONE
 
     island.py
-        create 1 Image from cairo, 1 Image from islands, then implement "addOverlay"
         promote Canvas out of test
         However keep the PNG stuff in the test
 
     Helpers
-        clipSegment
         marchSegment
+        clipSegment
 
     Infinite Island
 

@@ -32,6 +32,20 @@ proc newGrid*(width, height: int): Grid =
     result.width = width
     result.height = height
 
+# Creates a grid filled with the given value.
+proc newGrid*(width, height: int, value: float): Grid =
+    new(result)
+    result.data = repeat(value, width * height)
+    result.width = width
+    result.height = height
+
+# Clone a grid.
+proc newGrid*(grid: Grid): Grid =
+    new(result)
+    result.data = grid.data
+    result.width = grid.width
+    result.height = grid.height
+
 # Consumes a multiline string composed of 0's and 1's.
 proc newGrid*(pattern: string): Grid =
     new(result)

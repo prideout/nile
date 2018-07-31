@@ -66,6 +66,30 @@ proc newCanvas(width, height: int): Canvas =
     result.surface = image_surface_create(cstring(result.data), FORMAT_ARGB32, w32, h32, stride)
     result.context = result.surface.create()
 
+proc addOverlay(a, b: Image): Image =
+    new(result)
+    assert(a.format == b.format and a.width == b.width and a.height == b.height)
+    result.grids = newSeq[Grid](4)
+    result.format = "RGBA"
+    let alpha = b.grids[3]
+    result.grids[0] = a.grids[0] * (1 - alpha) + b.grids[0]
+    result.grids[1] = a.grids[1] * (1 - alpha) + b.grids[1]
+    result.grids[2] = a.grids[2] * (1 - alpha) + b.grids[2]
+    result.grids[3] = a.grids[3] * (1 - alpha) + b.grids[3]
+    result.width = a.width
+    result.height = a.height
+
+proc newImageFromLuminance(grid: Grid): Image =
+    new(result)
+    result.grids = newSeq[Grid](4)
+    result.format = "RGBA"
+    result.grids[0] = newGrid(grid)
+    result.grids[1] = newGrid(grid)
+    result.grids[2] = newGrid(grid)
+    result.grids[3] = newGrid(grid.width, grid.height, 1.0f)
+    result.width = grid.width
+    result.height = grid.height
+
 proc newImageFromDataString(data: string; width, height: int): Image =
     new(result)
     result.grids = newSeq[Grid](4)
@@ -86,7 +110,7 @@ proc newImageFromDataString(data: string; width, height: int): Image =
             i += 4
             inc j
 
-proc newDataStringFromImage(img: Image): string =
+proc toDataString(img: Image): string =
     result = newString(img.width * img.height * 4)
     var i = 0; var j = 0
     for row in 0..<img.height:
@@ -101,7 +125,7 @@ proc newDataStringFromImage(img: Image): string =
 proc newImageFromCanvas(c: Canvas): Image = newImageFromDataString(c.data, c.width, c.height)
 
 proc savePNG(img: Image, filename: string): void =
-    let data = newDataStringFromImage(img)
+    let data = img.toDataString()
     discard savePNG(filename, data, LCT_RGBA, 8, img.width, img.height)
     
 let
@@ -115,12 +139,6 @@ cr.set_source_rgba(1.0, 0.0, 0.0, 0.5)
 cr.stroke
 
 let
-    img = newImageFromCanvas(canvas)
-    island = genIsland(9, 320)
-
-img.grids[0] += island * 2
-img.grids[1] += island * 2
-img.grids[2] += island * 2
-img.grids[3] += island
-
-img.savePNG("big.png")
+    overlay = newImageFromCanvas(canvas)
+    island = newImageFromLuminance(genIsland(9, 320))
+island.addOverlay(overlay).savePNG("big.png")
