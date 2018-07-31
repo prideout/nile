@@ -22,10 +22,9 @@ For more information, read [the docs]().
 # TO BE DONE
 
     island.py
-        Overlay a small island shape with a color cairo image
-        Create minimal Image class
-            promote Canvas out of test
-            However keep the PNG stuff in the test
+        create 1 Image from cairo, 1 Image from islands, then implement "addOverlay"
+        promote Canvas out of test
+        However keep the PNG stuff in the test
 
     Helpers
         clipSegment

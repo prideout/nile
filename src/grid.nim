@@ -84,6 +84,10 @@ proc `+`*(a: Grid, b: Grid): Grid =
     result.width = a.width
     result.height = a.height
 proc `+=`*(g: Grid, k: float): void = g.apply(proc(f: var float): void = f += k)
+proc `+=`*(a: Grid, b: Grid): void =
+    assert(a.data.len() == b.data.len())
+    for i in 0..<a.data.len():
+        a.data[i] += b.data[i]
 
 # Multiplication (component wise).
 proc `*`*(g: Grid, k: float): Grid = g.map(proc(f: float): float = f * k)
