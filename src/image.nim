@@ -3,10 +3,10 @@ import grid
 type
     Image* = ref object
         width*, height*: int
-        red: Grid
-        grn: Grid
-        blu: Grid
-        alp: Grid
+        red*: Grid
+        grn*: Grid
+        blu*: Grid
+        alp*: Grid
 
 proc addOverlay*(a, b: Image): Image =
     new(result)
@@ -27,6 +27,7 @@ proc newImageFromLuminance*(grid: Grid): Image =
     result.width = grid.width
     result.height = grid.height
 
+# TODO: rename to newImageFromBGRA8
 proc newImageFromDataString*(data: string; width, height: int): Image =
     new(result)
     result.red = newGrid(width, height)
@@ -38,14 +39,15 @@ proc newImageFromDataString*(data: string; width, height: int): Image =
     var i = 0; var j = 0
     for row in 0..<result.height:
         for col in 0..<result.width:
-            result.red.data[j] = float(data[i + 3]) / 255
-            result.grn.data[j] = float(data[i + 0]) / 255
-            result.blu.data[j] = float(data[i + 1]) / 255
-            result.alp.data[j] = float(data[i + 2]) / 255
+            result.red.data[j] = float(data[i + 2]) / 255
+            result.grn.data[j] = float(data[i + 1]) / 255
+            result.blu.data[j] = float(data[i + 0]) / 255
+            result.alp.data[j] = float(data[i + 3]) / 255
             i += 4
             inc j
 
 # Exports the floating-point data by clamping to [0, 1] and scaling to 255.
+# TODO: rename to toRGBA8
 proc toDataString*(img: Image): string =
     result = newString(img.width * img.height * 4)
     var i = 0; var j = 0

@@ -9,9 +9,14 @@ For more information, read [the docs]().
 
 # INFINITE ISLAND
 
-    marchSegment, marched in from the top-right
+    Slow and Crashy with size = 3840
+        Debug crash with debug mode
 
-    Window is 960x540, Viewport is 960x960 BaseTile (L_f32) and CurrentTile (L_f32) are both 3840x3840.
+    Test your resampling code by minifying
+
+    Window is 960x540
+    Viewport is 960x960
+    BaseTile (L_f32) and CurrentTile (L_f32) are both 3840x3840.
     Initial Viewport is 0.375,0.375 through 0.625, 0.625
 
     see notes later in this file

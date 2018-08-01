@@ -120,6 +120,12 @@ proc `/=`*(g: Grid, k: float): void = g *= (1.0f / k)
 proc `-`*(k: float, g: Grid): Grid = g.map(proc(f: float): float = k - f)
 proc `-`*(g: Grid, k: float): Grid = g + (-k)
 proc `-=`*(g: Grid, k: float): void = g.apply(proc(f: var float): void = f += k)
+proc `-`*(a: Grid, b: Grid): Grid =
+    assert(a.width == b.width and a.height == b.height)
+    new(result)
+    result.data = zip(a.data, b.data).mapIt(it.a - it.b)
+    result.width = a.width
+    result.height = a.height
 
 proc step*(g: Grid, k: float): Grid = g.map(proc(f: float): float =
     if f <= k: 0 else: 1)
@@ -146,7 +152,7 @@ proc getPixel*(g: Grid, x, y: int): float =
     g.data[y * g.width + x]
 
 # Takes floating point coordinates in [0,+1] and returns the nearest pixel value.
-proc sampleNearest(g: Grid, x, y: float): float =
+proc sampleNearest*(g: Grid, x, y: float): float =
     let col = max(0, min(int(float(g.width) * x), g.width - 1))
     let row = max(0, min(int(float(g.height) * y), g.height - 1))
     g.data[row * g.width + col]
