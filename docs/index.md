@@ -1,7 +1,6 @@
 # Quick start
 
-**Nile** is a library for manipulating and generating images. It is written purely in nim, and
-has dependencies on just a couple other packages for reading and writing image files (**nimPNG**).
+**Nile** is a pure Nim library for manipulating and generating images.
 
 Nile is hosted on GitHub at [prideout/nile](https://github.com/prideout/nile).
 
@@ -11,12 +10,7 @@ Nile's **Grid** object is a two-dimensional array of scalar floating-point data.
 holds one of the RGB color planes or an alpha mask, but it can represent anything you like, such
 as a height map.
 
-As a user, you'll mostly interact with **Image**, which is a container of grids that exposes an
-easy-to-use API for working with image files and videos.
-
-An image associates each grid with a semantic such as RED or ALPHA, and potentially groups them into
-animation frames. Behind the scenes, it can evict grids from memory or load them in lazily, but
-this behavior is shielded from users.
+As a user, you'll mostly interact with **Image**, which contains a grid for each color plane.
 
 Nile also defines a **Canvas** object for creating simple vector drawings. You can use this to fill
 a region with color, or to draw Bézier curves.
@@ -54,5 +48,3 @@ image.save("semitransparent.png")
 ### Create a 2x2 mosaic
 
 hstack + vstack
-
-

@@ -1,20 +1,16 @@
-#!/usr/bin/env nim c --debugger:native --run
-
 #!/usr/bin/env nim c -d:release --boundChecks:off --verbosity:0 --run
 
-import cairo
-import nimPNG
+#!/usr/bin/env nim c --debugger:native --run
+
 import nile
+import nimPNG
 
-# Exports the floating-point data by clamping to [0, 1] and scaling to 255.
 proc savePNG(g: Grid, filename: string): void =
-    let npixels = g.width * g.height
-    var u8data = newString(npixels)
-    for i in 0..<npixels:
-        let v = g.data[i].clamp(0, 1)
-        u8data[i] = chr(int(v * 255))
-    discard savePNG(filename, u8data, LCT_GREY, 8, g.width, g.height)
+    discard savePNG(filename, g.toDataString(), LCT_GREY, 8, g.width, g.height)
 
+proc savePNG(img: Image, filename: string): void =
+    discard savePNG(filename, img.toDataString(), LCT_RGBA, 8, img.width, img.height)
+    
 proc genIsland(seed: int, size: int = 128): Grid =
     let
         s2 = size * 2
@@ -30,115 +26,24 @@ proc genIsland(seed: int, size: int = 128): Grid =
         g2 = g.step(0.1) * 0.7 + 0.1
     return g2.crop(r0, r0, r1, r1)
 
-let
-    a0 = genIsland(0)
-    b0 = genIsland(1)
-    c0 = genIsland(2)
-    d0 = genIsland(3)
-    a1 = genIsland(4)
-    b1 = genIsland(5)
-    c1 = genIsland(6)
-    d1 = genIsland(7)
-
-vstack(hstack(a0, b0, c0, d0), hstack(a1, b1, c1, d1))
-    .drawGrid(4, 2, 0.3f).savePNG("islands.png")
-
-type
-    Canvas* = ref object
-        data*: string
-        width*, height*: int
-        surface: PSurface
-        context: PContext
-    Image* = ref object
-        width*, height*: int
-        grids: seq[Grid]
-        format: string
-
-proc newCanvas(width, height: int): Canvas =
-    new(result)
-    result.data = newString(width * height * 4)
-    result.width = width
-    result.height = height
+proc genIslands(): void =
+    var isles: array[8, Grid]
+    for seed in 0..<isles.len():
+        isles[seed] = genIsland seed
     let
-        w32 = int32(width)
-        h32 = int32(height)
-        stride = int32(width * 4)
-    result.surface = image_surface_create(cstring(result.data), FORMAT_ARGB32, w32, h32, stride)
-    result.context = result.surface.create()
+        row0 = hstack(isles[0], isles[1], isles[2], isles[3])
+        row1 = hstack(isles[4], isles[5], isles[6], isles[7])
+    vstack(row0, row1).drawGrid(4, 2, 0.3f).savePNG("islands.png")
 
-proc addOverlay(a, b: Image): Image =
-    new(result)
-    assert(a.format == b.format and a.width == b.width and a.height == b.height)
-    result.grids = newSeq[Grid](4)
-    result.format = "RGBA"
-    let alpha = b.grids[3]
-    result.grids[0] = a.grids[0] * (1 - alpha) + b.grids[0]
-    result.grids[1] = a.grids[1] * (1 - alpha) + b.grids[1]
-    result.grids[2] = a.grids[2] * (1 - alpha) + b.grids[2]
-    result.grids[3] = a.grids[3] * (1 - alpha) + b.grids[3]
-    result.width = a.width
-    result.height = a.height
+genIslands()
 
-proc newImageFromLuminance(grid: Grid): Image =
-    new(result)
-    result.grids = newSeq[Grid](4)
-    result.format = "RGBA"
-    result.grids[0] = newGrid(grid)
-    result.grids[1] = newGrid(grid)
-    result.grids[2] = newGrid(grid)
-    result.grids[3] = newGrid(grid.width, grid.height, 1.0f)
-    result.width = grid.width
-    result.height = grid.height
-
-proc newImageFromDataString(data: string; width, height: int): Image =
-    new(result)
-    result.grids = newSeq[Grid](4)
-    result.format = "RGBA"
-    result.grids[0] = newGrid(width, height)
-    result.grids[1] = newGrid(width, height)
-    result.grids[2] = newGrid(width, height)
-    result.grids[3] = newGrid(width, height)
-    result.width = width
-    result.height = height
-    var i = 0; var j = 0
-    for row in 0..<result.height:
-        for col in 0..<result.width:
-            result.grids[0].data[j] = float(data[i + 3]) / 255
-            result.grids[1].data[j] = float(data[i + 0]) / 255
-            result.grids[2].data[j] = float(data[i + 1]) / 255
-            result.grids[3].data[j] = float(data[i + 2]) / 255
-            i += 4
-            inc j
-
-proc toDataString(img: Image): string =
-    result = newString(img.width * img.height * 4)
-    var i = 0; var j = 0
-    for row in 0..<img.height:
-        for col in 0..<img.width:
-            result[i + 0] = char((img.grids[0].data[j] * 255).clamp(0, 255))
-            result[i + 1] = char((img.grids[1].data[j] * 255).clamp(0, 255))
-            result[i + 2] = char((img.grids[2].data[j] * 255).clamp(0, 255))
-            result[i + 3] = char((img.grids[3].data[j] * 255).clamp(0, 255))
-            i += 4
-            inc j
-
-proc newImageFromCanvas(c: Canvas): Image = newImageFromDataString(c.data, c.width, c.height)
-
-proc savePNG(img: Image, filename: string): void =
-    let data = img.toDataString()
-    discard savePNG(filename, data, LCT_RGBA, 8, img.width, img.height)
-    
-let
-    canvas = newCanvas(320, 320)
-    cr = canvas.context
-cr.scale(320, 320)
-cr.set_line_width(0.005)
-cr.move_to(0.6, 0)
-cr.line_to(0.4, 1)
-cr.set_source_rgba(1.0, 0.0, 0.0, 0.5)
-cr.stroke
+let canvas = newCanvas(320, 320)
+canvas.moveTo(0.6, 0)
+canvas.lineTo(0.4, 1)
+canvas.setColor(1.0, 0.0, 0.0, 0.5)
+canvas.stroke()
 
 let
-    overlay = newImageFromCanvas(canvas)
+    overlay = canvas.toImage()
     island = newImageFromLuminance(genIsland(9, 320))
 island.addOverlay(overlay).savePNG("big.png")

@@ -370,3 +370,11 @@ proc generateGradientNoise*(seed: int; width, height: int; frequency: float32): 
     let f = frequency
     let viewport = (-f, -f, f, f)
     generateGradientNoise(seed, width, height, viewport)
+
+# Exports the floating-point data by clamping to [0, 1] and scaling to 255.
+proc toDataString*(g: Grid): string =
+    let npixels = g.width * g.height
+    result = newString(npixels)
+    for i in 0..<npixels:
+        let v = g.data[i].clamp(0, 1)
+        result[i] = chr(int(v * 255))
