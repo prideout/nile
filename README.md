@@ -7,6 +7,21 @@ For more information, read [the docs]().
 
 <!--
 
+# INFINITE ISLAND
+
+    marchSegment, marched in from the top-right
+
+    Window is 960x540, Viewport is 960x960 BaseTile (L_f32) and CurrentTile (L_f32) are both 3840x3840.
+    Initial Viewport is 0.375,0.375 through 0.625, 0.625
+
+    see notes later in this file
+
+    making video
+        import os
+        execShellCmd(command: string)
+        https://en.wikibooks.org/wiki/FFMPEG_An_Intermediate_Guide/image_sequence
+        ffmpeg -i image-%03d.png video.webm
+
 # SEE ALSO
 
     https://nimble.directory/search?query=graphics
@@ -23,22 +38,6 @@ For more information, read [the docs]().
 
 # TO BE DONE
 
-    island.py
-        promote Canvas out of test
-        However keep the PNG stuff in the test
-
-    Helpers
-        marchSegment, marched in from the top-right
-
-    Infinite Island
-        Window is 960x540, Viewport is 960x960 BaseTile (L_f32) and CurrentTile (L_f32) are both 3840x3840.
-        Initial Viewport is 0.375,0.375 through 0.625, 0.625
-        making video
-            import os
-            execShellCmd(command: string)
-            https://en.wikibooks.org/wiki/FFMPEG_An_Intermediate_Guide/image_sequence
-            ffmpeg -i image-%03d.png video.webm
-
     Grid
         float => float32, int => int32
         use mapIt and applyIt
@@ -51,11 +50,14 @@ For more information, read [the docs]().
         blitFrom
 
     Image
-        always 4 channels, but savePNG allows choosing a subset
         pillow suite of things
-        png and jpeg only
         colorspace: linear / srgb
-        save takes CLAMP or NORMALIZE
+        toDataString takes CLAMP or NORMALIZE
+
+    Canvas
+        port from Skia
+        Wrote program that creates diagram showing the relationship between
+            Grid / Image / Canvas
 
     automate tests
         keep it simple, just check in the PNG files and diff them with a simple nim program

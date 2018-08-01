@@ -10,7 +10,12 @@ proc savePNG(g: Grid, filename: string): void =
 
 proc savePNG(img: Image, filename: string): void =
     discard savePNG(filename, img.toDataString(), LCT_RGBA, 8, img.width, img.height)
-    
+
+proc marchSegment(grid: Grid, p0: Vec2f, p1: Vec2f): Vec2f =
+    let delta = 1 / float(max(grid.width, grid.height))
+    echo "marchSegment is TBD"
+    return (0.5f, 0.5f)
+
 proc genIsland(seed: int, size: int = 128): Grid =
     let
         s2 = size * 2
@@ -37,13 +42,14 @@ proc genIslands(): void =
 
 genIslands()
 
-let canvas = newCanvas(320, 320)
-canvas.moveTo(0.6, 0)
-canvas.lineTo(0.4, 1)
-canvas.setColor(1.0, 0.0, 0.0, 0.5)
-canvas.stroke()
-
 let
-    overlay = canvas.toImage()
-    island = newImageFromLuminance(genIsland(9, 320))
-island.addOverlay(overlay).savePNG("big.png")
+    island = genIsland(9, 320)
+    p0 = (0.6f, 0.0f)
+    p1 = (0.4f, 1.0f)
+    pt = island.marchSegment(p0, p1)
+    canvas = newCanvas(320, 320)
+
+canvas.setColor(0.0, 1.0, 0.0, 0.5).moveTo(p0).lineTo(p1).stroke()
+canvas.setColor(0.1, 0.1, 0.1, 1.0).circle(pt, radius = 0.01).fill()
+
+newImageFromLuminance(island).addOverlay(canvas.toImage()).savePNG("big.png")

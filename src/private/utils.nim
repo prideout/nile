@@ -1,6 +1,7 @@
 import hashes
 import math
 import random
+import ../vector
 
 type Filter* = object
     radius*: float
@@ -13,8 +14,6 @@ type Filter* = object
 type MaccOp = tuple[targetColumn: int, sourceColumn: int, filterWeight: float]
 
 type
-    Vec2f = tuple[x, y: float32]
-    Vec2i = tuple[x, y: int32]
     GradientNoiseTable = ref object
         seed: int
         size: int
@@ -23,17 +22,6 @@ type
         indices: seq[int32]
 
 proc fract(f: float32): float32 = f - floor(f)
-proc `*`(a: Vec2f, b: Vec2f): Vec2f = (a.x * b.x, a.y * b.y)
-proc `*`(a: Vec2f, b: float32): Vec2f = (a.x * b, a.y * b)
-proc `+`(a: Vec2f, b: float32): Vec2f = (a.x + b, a.y + b)
-proc `-`(a: Vec2f, b: float32): Vec2f = (a.x - b, a.y - b)
-# proc `+`(a: Vec2f, b: Vec2f): Vec2f = (a.x + b.x, a.y + b.y)
-proc `-`(a: Vec2f, b: Vec2f): Vec2f = (a.x - b.x, a.y - b.y)
-proc dot(a: Vec2f, b: Vec2f): float32 = a.x * b.x + a.y * b.y
-# proc `+`(a: Vec2i, b: int32): Vec2i = (a.x + b, a.y + b)
-# proc `-`(a: Vec2i, b: int32): Vec2i = (a.x - b, a.y - b)
-proc `+`(a: Vec2i, b: Vec2i): Vec2i = (a.x + b.x, a.y + b.y)
-# proc `-`(a: Vec2i, b: Vec2i): Vec2i = (a.x - b.y, a.y - b.y)
         
 proc newGradientNoiseTable*(seed: int): GradientNoiseTable =
     result = new GradientNoiseTable
