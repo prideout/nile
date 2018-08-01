@@ -2,17 +2,7 @@
 
 #!/usr/bin/env nim c --debugger:native --run
 
-import nimPNG
 import nile
-
-# Exports the floating-point data by clamping to [0, 1] and scaling to 255.
-proc savePNG(g: Grid, filename: string): void =
-    let npixels = g.width * g.height
-    var u8data = newString(npixels)
-    for i in 0..<npixels:
-        let v = g.data[i].clamp(0, 1)
-        u8data[i] = chr(int(v * 255))
-    discard savePNG(filename, u8data, LCT_GREY, 8, g.width, g.height)
 
 const diagramScale = 16
 

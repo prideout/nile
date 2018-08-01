@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/prideout/lava.svg?branch=master)](https://travis-ci.org/prideout/lava)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/prideout/clumpy/blob/master/LICENSE)
 
-**Nile** is a library for manipulating and generating images. It is written purely in nim.
+**Nile** is a library for manipulating and generating images.
 
 For more information, read [the docs]().
 

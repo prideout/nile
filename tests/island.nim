@@ -3,13 +3,6 @@
 #!/usr/bin/env nim c --debugger:native --run
 
 import nile
-import nimPNG
-
-proc savePNG*(g: Grid, filename: string): void =
-    discard savePNG(filename, g.toDataString(), LCT_GREY, 8, g.width, g.height)
-
-proc savePNG(img: Image, filename: string): void =
-    discard savePNG(filename, img.toDataString(), LCT_RGBA, 8, img.width, img.height)
 
 proc marchSegment(grid: Grid, p0: Vec2f, p1: Vec2f): Vec2f =
     let delta = 1 / float(max(grid.width, grid.height))
@@ -27,12 +20,17 @@ proc genIsland(seed: int, size: int = 128): Grid =
     let
         s2 = size * 2
         splat = newGrid("000 010 000").resize(s2, s2, FilterHermite)
-        g = ((
-            generateGradientNoise(seed, s2, s2, 4.0f) +
-            generateGradientNoise(seed, s2, s2, 8.0f) / 2 +
-            generateGradientNoise(seed, s2, s2, 16.0f) / 4 +
-            generateGradientNoise(seed, s2, s2, 32.0f) / 8) +
-            splat * 0.5) * splat
+    echo "    Layer 1..."
+    var g = generateGradientNoise(seed, s2, s2, 4.0f)
+    echo "    Layer 2..."
+    g += generateGradientNoise(seed, s2, s2, 8.0f) / 2
+    echo "    Layer 3..."
+    g += generateGradientNoise(seed, s2, s2, 16.0f) / 4
+    echo "    Layer 4..."
+    g += generateGradientNoise(seed, s2, s2, 32.0f) / 8
+    g += splat / 2
+    g *= splat
+    let
         r0 = int(float(size) - size / 2)
         r1 = int(float(size) + size / 2)
         g2 = g.step(0.1)
@@ -64,4 +62,10 @@ canvas.setColor(0.0, 0.0, 0.0, 1.0).circle(pt, radius = 0.01).fill()
 canvas.setColor(1.0, 1.0, 1.0, 1.0).circle(pt, radius = 0.01).stroke()
 
 echo "Saving PNG..."
-newImageFromLuminance(island).addOverlay(canvas.toImage()).savePNG("big.png")
+var im = newImageFromLuminance(island)
+echo "    Converting canvas..."
+let overlay = canvas.toImage()
+echo "    Compositing..."
+im = im.addOverlay(overlay)
+echo "    Saving..."
+im.savePNG("big.png")

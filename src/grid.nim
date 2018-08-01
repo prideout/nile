@@ -4,15 +4,15 @@ import strutils
 
 import private/utils
 
-let FilterHermite* = Filter(radius: 1, function: proc (x: float): float =
+let FilterHermite* = Filter(radius: 1, function: proc (x: float32): float32 =
     if x >= 1.0: return 0
     2 * x * x * x - 3 * x * x + 1)
 
-let FilterTriangle* = Filter(radius: 1, function: proc (x: float): float =
+let FilterTriangle* = Filter(radius: 1, function: proc (x: float32): float32 =
     if x >= 1.0: return 0
     1.0 - x)
 
-let FilterGaussian* = Filter(radius: 2, function: proc (x: float): float =
+let FilterGaussian* = Filter(radius: 2, function: proc (x: float32): float32 =
     const scale = 1.0f / sqrt(0.5f * math.PI)
     if x >= 2.0: return 0
     exp(-2 * x * x) * scale)
@@ -22,18 +22,18 @@ let FilterGaussian* = Filter(radius: 2, function: proc (x: float): float =
 ## X Y notation (i.e. columns ⨯ rows) with 0,0 being the top-left.
 type
     Grid* = ref object
-      data*: seq[float]
+      data*: seq[float32]
       width*, height*: int
 
 # Creates a grid full of zeros.
 proc newGrid*(width, height: int): Grid =
     new(result)
-    result.data = newSeq[float](width * height)
+    result.data = newSeq[float32](width * height)
     result.width = width
     result.height = height
 
 # Creates a grid filled with the given value.
-proc newGrid*(width, height: int, value: float): Grid =
+proc newGrid*(width, height: int, value: float32): Grid =
     new(result)
     result.data = repeat(value, width * height)
     result.width = width
@@ -57,16 +57,16 @@ proc newGrid*(pattern: string): Grid =
                 result.width = ncols
             elif result.width != ncols: 
                 doAssert false
-    result.data = newSeq[float](result.width * result.height)
+    result.data = newSeq[float32](result.width * result.height)
     var n = 0
     for iter in tokenize(pattern):
         if not iter.isSep:
             for c in iter.token:
-                result.data[n] = float(ord(c) - ord('0'))
+                result.data[n] = float32(ord(c) - ord('0'))
                 inc n
 
 # Returns a new grid with the results of op applied to every value.
-proc map*(g: Grid, op: proc (x: float): float): Grid =
+proc map*(g: Grid, op: proc (x: float32): float32): Grid =
     new(result)
     result.data = map(g.data, op)
     result.width = g.width
@@ -75,7 +75,7 @@ proc map*(g: Grid, op: proc (x: float): float): Grid =
 # Convenience template around the map proc to reduce typing.
 template mapIt*(g: Grid, op: untyped): Grid =
     new(result)
-    result.data = newSeq[float](g.data.len)
+    result.data = newSeq[float32](g.data.len)
     result.width = g.width
     result.height = g.height
     var i = 0
@@ -86,75 +86,84 @@ template mapIt*(g: Grid, op: untyped): Grid =
     result
 
 # Applies op to every item in g modifying it directly.
-proc apply*(g:Grid, op: proc (x: var float): void): void = g.data.apply(op)
+proc apply*(g:Grid, op: proc (x: var float32): void): void = g.data.apply(op)
 
 # Addition.
-proc `+`*(k: float, g: Grid): Grid = g.map(proc(f: float): float = k + f)
-proc `+`*(g: Grid, k: float): Grid = k + g
+proc `+`*(k: float32, g: Grid): Grid = g.map(proc(f: float32): float32 = k + f)
+proc `+`*(g: Grid, k: float32): Grid = k + g    
+proc `+=`*(g: Grid, k: float32): void = g.apply(proc(f: var float32): void = f += k)
+proc `+=`*(a: Grid, b: Grid): void =
+    assert(a.data.len() == b.data.len())
+    for i in 0..<a.data.len(): a.data[i] += b.data[i]
+
+# Multiplication (component wise).
+proc `*`*(g: Grid, k: float32): Grid = g.map(proc(f: float32): float32 = f * k)
+proc `*`*(k: float32, g: Grid): Grid = g.map(proc(f: float32): float32 = f * k)
+proc `*=`*(g: Grid, k: float32): void = g.apply(proc(f: var float32): void = f *= k)
+proc `*=`*(a: Grid, b: Grid): void =
+    assert(a.data.len() == b.data.len())
+    for i in 0..<a.data.len(): a.data[i] *= b.data[i]
+
+# Misc other math ops.
+proc `/`*(g: Grid, k: float32): Grid = g * (1.0f / k)
+proc `/=`*(g: Grid, k: float32): void = g *= (1.0f / k)    
+proc `-`*(k: float32, g: Grid): Grid = g.map(proc(f: float32): float32 = k - f)
+proc `-`*(g: Grid, k: float32): Grid = g + (-k)
+proc `-=`*(g: Grid, k: float32): void = g.apply(proc(f: var float32): void = f += k)
+
+# Do not use zip in the following procs, it seems inefficient.
 proc `+`*(a: Grid, b: Grid): Grid =
     assert(a.width == b.width and a.height == b.height)
     new(result)
-    result.data = zip(a.data, b.data).mapIt(it.a + it.b)
+    result.data = newSeq[float32](a.data.len())
+    for i in 0..<a.data.len(): result.data[i] = a.data[i] + b.data[i]
     result.width = a.width
     result.height = a.height
-proc `+=`*(g: Grid, k: float): void = g.apply(proc(f: var float): void = f += k)
-proc `+=`*(a: Grid, b: Grid): void =
-    assert(a.data.len() == b.data.len())
-    for i in 0..<a.data.len():
-        a.data[i] += b.data[i]
 
-# Multiplication (component wise).
-proc `*`*(g: Grid, k: float): Grid = g.map(proc(f: float): float = f * k)
-proc `*`*(k: float, g: Grid): Grid = g.map(proc(f: float): float = f * k)
-proc `*`*(a: Grid, b: Grid): Grid =
-    assert(a.width == b.width and a.height == b.height)
-    new(result)
-    result.data = zip(a.data, b.data).mapIt(it.a * it.b)
-    result.width = a.width
-    result.height = a.height
-proc `*=`*(g: Grid, k: float): void = g.apply(proc(f: var float): void = f *= k)
-
-# Misc other math ops.
-proc `/`*(g: Grid, k: float): Grid = g * (1.0f / k)
-proc `/=`*(g: Grid, k: float): void = g *= (1.0f / k)    
-proc `-`*(k: float, g: Grid): Grid = g.map(proc(f: float): float = k - f)
-proc `-`*(g: Grid, k: float): Grid = g + (-k)
-proc `-=`*(g: Grid, k: float): void = g.apply(proc(f: var float): void = f += k)
 proc `-`*(a: Grid, b: Grid): Grid =
     assert(a.width == b.width and a.height == b.height)
     new(result)
-    result.data = zip(a.data, b.data).mapIt(it.a - it.b)
+    result.data = newSeq[float32](a.data.len())
+    for i in 0..<a.data.len(): result.data[i] = a.data[i] - b.data[i]
     result.width = a.width
     result.height = a.height
 
-proc step*(g: Grid, k: float): Grid = g.map(proc(f: float): float =
+proc `*`*(a: Grid, b: Grid): Grid =
+    assert(a.width == b.width and a.height == b.height)
+    new(result)
+    result.data = newSeq[float32](a.data.len())
+    for i in 0..<a.data.len(): result.data[i] = a.data[i] * b.data[i]
+    result.width = a.width
+    result.height = a.height
+
+proc step*(g: Grid, k: float32): Grid = g.map(proc(f: float32): float32 =
     if f <= k: 0 else: 1)
 
 # Finds the smallest value in the entire grid.
-proc min*(g: Grid): float = foldl(g.data, min(a, b), high(float))
+proc min*(g: Grid): float32 = foldl(g.data, min(a, b), high(float32))
 
 # Finds the largest value in the entire grid.
-proc max*(g: Grid): float = foldl(g.data, max(a, b), low(float))
+proc max*(g: Grid): float32 = foldl(g.data, max(a, b), low(float32))
 
 # Sets the pixel value at the given column and row.
-proc setPixel*(g: Grid, x, y: int, k: float = 1): void =
+proc setPixel*(g: Grid, x, y: int, k: float32 = 1): void =
     assert(x >= 0 and x < g.width and y >= 0 and y < g.height)
     g.data[y * g.width + x] = k
 
 # Adds the given value into the texel
-proc addPixel*(g: Grid, x, y: int, k: float = 1): void =
+proc addPixel*(g: Grid, x, y: int, k: float32 = 1): void =
     assert(x >= 0 and x < g.width and y >= 0 and y < g.height)
     g.data[y * g.width + x] += k
     
 # Gets the pixel value at the given column and row.
-proc getPixel*(g: Grid, x, y: int): float =
+proc getPixel*(g: Grid, x, y: int): float32 =
     assert(x >= 0 and x < g.width and y >= 0 and y < g.height)
     g.data[y * g.width + x]
 
 # Takes floating point coordinates in [0,+1] and returns the nearest pixel value.
-proc sampleNearest*(g: Grid, x, y: float): float =
-    let col = max(0, min(int(float(g.width) * x), g.width - 1))
-    let row = max(0, min(int(float(g.height) * y), g.height - 1))
+proc sampleNearest*(g: Grid, x, y: float32): float32 =
+    let col = max(0, min(int(float32(g.width) * x), g.width - 1))
+    let row = max(0, min(int(float32(g.height) * y), g.height - 1))
     g.data[row * g.width + col]
 
 # Copies a region of pixels from the source grid.
@@ -169,7 +178,7 @@ proc blitFrom*(dst: Grid, src: Grid; dstx, dsty: int; left, top, right, bottom: 
 
 # Draws single-pixel gridlines such that "ncols ⨯ nrows" cells have borders.
 # Increases the width and height of the grid by 1 pixel.
-proc drawGrid*(g: Grid; ncols, nrows: int; value: float = 0): Grid =
+proc drawGrid*(g: Grid; ncols, nrows: int; value: float32 = 0): Grid =
     result = newGrid(g.width + 1, g.height + 1)
     result.blitFrom(g, 0, 0, 0, 0, g.width, g.height)
     for row in 0..<nrows:
@@ -190,12 +199,12 @@ proc drawGrid*(g: Grid; ncols, nrows: int; value: float = 0): Grid =
     
 # Computes an average value over a viewport in [0,+1] and accounts for pixel squares that are
 # only partially covered by the viewport.
-proc computeAverage*(g: Grid; left, top, right, bottom: float): float =
+proc computeAverage*(g: Grid; left, top, right, bottom: float32): float32 =
     let
-        x0 = left * float(g.width)
-        y0 = top * float(g.height)
-        x1 = right * float(g.width)
-        y1 = bottom * float(g.height)
+        x0 = left * float32(g.width)
+        y0 = top * float32(g.height)
+        x1 = right * float32(g.width)
+        y1 = bottom * float32(g.height)
         inner_col0 = int(ceil(x0)).max(0)
         inner_row0 = int(ceil(y0)).max(0)
         inner_col1 = int(floor(x1)).min(g.width) - 1
@@ -214,10 +223,10 @@ proc computeAverage*(g: Grid; left, top, right, bottom: float): float =
             total += g.getPixel(col, row)
     # Determine the amount of fractional overhang on all 4 sides.
     let
-        w = float(inner_col0) - x0
-        e = x1 - float(outer_col1)
-        n = float(inner_row0) - y0
-        s = y1 - float(outer_row1)
+        w = float32(inner_col0) - x0
+        e = x1 - float32(outer_col1)
+        n = float32(inner_row0) - y0
+        s = y1 - float32(outer_row1)
     # Left column of pixels with fractional coverage.
     if w > 0:
         for row in inner_row0..inner_row1:
@@ -252,8 +261,8 @@ proc computeAverage*(g: Grid; left, top, right, bottom: float): float =
 # This is the same as a classic box filter when magnifying or minifying by a multiple of 2.
 proc resizeBoxFilter*(g: Grid, width, height: int): Grid =
     result = newGrid(width, height)
-    let dx = 1.0f / float(width)
-    let dy = 1.0f / float(height)
+    let dx = 1.0f / float32(width)
+    let dy = 1.0f / float32(height)
     var x = 0.0f
     var y = 0.0f
     var i = 0
@@ -269,8 +278,8 @@ proc resizeBoxFilter*(g: Grid, width, height: int): Grid =
 # Resizes an image by choosing nearest pixels from the source image (does no filtering whatsoever).
 proc resizeNearestFilter*(g: Grid, width, height: int): Grid =
     result = newGrid(width, height)
-    let dx = 1.0f / float(width)
-    let dy = 1.0f / float(height)
+    let dx = 1.0f / float32(width)
+    let dy = 1.0f / float32(height)
     var x = 0.5f * dx
     var y = 0.5f * dy
     var i = 0
@@ -297,7 +306,7 @@ proc resize*(source: Grid, width, height: int, filter: Filter): Grid =
     # Next resize vertically.
     result = newGrid(width, height)
     ops = computeMaccOps(height, source.height, filter)
-    var transpose = newSeq[float](source.height)
+    var transpose = newSeq[float32](source.height)
     for tx in 0..<width:
         for y in 0..<source.height:
             transpose[y] = horizontal.getPixel(tx, y)

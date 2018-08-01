@@ -4,14 +4,14 @@ import random
 import ../vector
 
 type Filter* = object
-    radius*: float
-    function*: proc (x: float): float
+    radius*: float32
+    function*: proc (x: float32): float32
 
 # Regardless of filter type, any resizing operation executes a Multiply-Accumulate (Macc) more
 # than anything else. This can be described as:
 #       targetRow[targetColumn] += sourceRow[sourceColumn] * filterWeight
 # The operands that can be cached from row to row are the two indices and the weight.
-type MaccOp = tuple[targetColumn: int, sourceColumn: int, filterWeight: float]
+type MaccOp = tuple[targetColumn: int, sourceColumn: int, filterWeight: float32]
 
 type
     GradientNoiseTable = ref object
@@ -44,7 +44,7 @@ proc getGradient(table: GradientNoiseTable, p: Vec2i): Vec2f =
     h = (!$h)
     table.gradients[table.indices[h and table.mask]]
 
-proc computeNoiseValue*(table: GradientNoiseTable, x, y: float32): float =
+proc computeNoiseValue*(table: GradientNoiseTable, x, y: float32): float32 =
     let
         i = (x: int32(floor(x)), y: int32(floor(y)))
         f = (fract(x), fract(y))
@@ -64,23 +64,23 @@ proc computeNoiseValue*(table: GradientNoiseTable, x, y: float32): float =
 proc computeMaccOps*(targetLen, sourceLen: int; filter: Filter): seq[MaccOp] =
     result = newSeq[MaccOp]()
     let
-        targetDelta = 1 / float(targetLen)
-        sourceDelta = 1 / float(sourceLen)
+        targetDelta = 1 / float32(targetLen)
+        sourceDelta = 1 / float32(sourceLen)
     var x = targetDelta / 2
     for targetIndex in 0..<targetLen:
         let
             minx = x - filter.radius * sourceDelta
             maxx = x + filter.radius * sourceDelta
-            minsi = int(minx * float(sourceLen))
-            maxsi = int(ceil(maxx * float(sourceLen)))
+            minsi = int(minx * float32(sourceLen))
+            maxsi = int(ceil(maxx * float32(sourceLen)))
         var
             nsamples = 0
             weightSum = 0.0f
         for si in minsi..maxsi:
             if si < 0 or si >= sourceLen: continue
             let
-                sx = (0.5 + float(si)) * sourceDelta
-                t = float(sourceLen) * abs(sx - x)
+                sx = (0.5 + float32(si)) * sourceDelta
+                t = float32(sourceLen) * abs(sx - x)
                 weight = filter.function(t)
             if weight != 0:
                 result.add (targetIndex, si, weight)

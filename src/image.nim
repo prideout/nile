@@ -11,10 +11,15 @@ type
 proc addOverlay*(a, b: Image): Image =
     new(result)
     assert(a.width == b.width and a.height == b.height)
-    result.red = a.red * (1 - b.alp) + b.red
-    result.grn = a.grn * (1 - b.alp) + b.grn
-    result.blu = a.blu * (1 - b.alp) + b.blu
-    result.alp = a.alp * (1 - b.alp) + b.alp
+    let invalp = 1 - b.alp
+    result.red = a.red * invalp
+    result.grn = a.grn * invalp
+    result.blu = a.blu * invalp
+    result.alp = a.alp * invalp
+    result.red += b.red
+    result.grn += b.grn
+    result.blu += b.blu
+    result.alp += b.alp
     result.width = a.width
     result.height = a.height
 
