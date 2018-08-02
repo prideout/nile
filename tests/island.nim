@@ -8,7 +8,7 @@ import nile
 var verbose = false
 
 const NFRAMES = 30
-const TILE_RESOLUTION = 1024 # 3840
+const TILE_RESOLUTION = 2048 # 3840
 const VIEWPORT_RESOLUTION = int(TILE_RESOLUTION / 4)
 
 proc enlargeViewport*(vp: Viewport, mag: float): Viewport =
@@ -42,28 +42,41 @@ proc marchSegment(grid: Grid, p0: Vec2f, p1: Vec2f): Vec2f =
         if p.x < 0 or p.x > 1 or p.y < 0 or p.y > 1: break
     return p
 
+proc genSplat(size: int, center: Vec2f, scale: float): Grid =
+    result = newGrid(size, size)
+    let dx = 1.0f / float32(size)
+    var y = 0.0f
+    var i = 0
+    for row in 0..<size:
+        var x = 0.0f
+        for col in 0..<size:
+            var t = scale * len((x,y) - center)
+            var v = FilterHermite.function(t)
+            result.data[i] = v * v * v
+            inc i
+            x += dx
+        y += dx
+
 proc genIsland(seed: int, size: int, view: Viewport = ENTIRE): Grid =
-    let s2 = size * 2
-    let splat = newGrid("000 010 000").resize(s2, s2, FilterHermite)
-    var vp = view * 32.0f
+    let splat = genSplat(size, (0.5f, 0.5f), 1.0f)
+    var vp = view * 16.0f
     if verbose: echo "    Layer 1..."
-    var g = generateGradientNoise(seed, s2, s2, vp)
+    var g = generateGradientNoise(seed, size, size, vp)
     if verbose: echo "    Layer 2..."
     vp = vp * 2.0f
-    g += generateGradientNoise(seed, s2, s2, vp) / 2
+    g += generateGradientNoise(seed + 1, size, size, vp) / 2
     if verbose: echo "    Layer 3..."
     vp = vp * 2.0f
-    g += generateGradientNoise(seed, s2, s2, vp) / 4
+    g += generateGradientNoise(seed + 2, size, size, vp) / 4
     if verbose: echo "    Layer 4..."
     vp = vp * 2.0f
-    g += generateGradientNoise(seed, s2, s2, vp) / 8
+    g += generateGradientNoise(seed + 3, size, size, vp) / 8
+    if verbose: echo "    Layer 5..."
+    vp = vp * 2.0f
+    g += generateGradientNoise(seed + 4, size, size, vp) / 16
     g += splat / 2
     g *= splat
-    let
-        r0 = int(float(size) - size / 2)
-        r1 = int(float(size) + size / 2)
-        g3 = (1.0 - g) * g.step(0.1)
-    return g3.crop(r0, r0, r1, r1)
+    return (1.0 - g) * g.step(0.1)
 
 var view: Viewport = (0.375f, 0.375f, 0.625f, 0.625f)
 

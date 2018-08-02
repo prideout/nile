@@ -9,8 +9,6 @@ For more information, read [the docs]().
 
 # INFINITE ISLAND
 
-    Splat needs to be procedural, not a baked image.
-
     Window is 960x540
     Viewport is 960x960
     BaseTile (L_f32) and CurrentTile (L_f32) are both 3840x3840.
