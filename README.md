@@ -9,10 +9,7 @@ For more information, read [the docs]().
 
 # INFINITE ISLAND
 
-    Slow and Crashy with size = 3840
-        Debug crash with debug mode
-
-    Test your resampling code by minifying
+    Convert Viewport to ltrp with upper lower methods, move to vector and make grid.nim use it.
 
     Window is 960x540
     Viewport is 960x960

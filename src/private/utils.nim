@@ -22,7 +22,7 @@ type
         indices: seq[int32]
 
 proc fract(f: float32): float32 = f - floor(f)
-        
+
 proc newGradientNoiseTable*(seed: int): GradientNoiseTable =
     result = new GradientNoiseTable
     result.seed = seed
@@ -66,11 +66,14 @@ proc computeMaccOps*(targetLen, sourceLen: int; filter: Filter): seq[MaccOp] =
     let
         targetDelta = 1 / float32(targetLen)
         sourceDelta = 1 / float32(sourceLen)
+        minifying = targetLen < sourceLen
+        filterExtent = if minifying: targetDelta else: sourceDelta
+        filterDomain = float32(if minifying: targetLen else: sourceLen)
     var x = targetDelta / 2
     for targetIndex in 0..<targetLen:
         let
-            minx = x - filter.radius * sourceDelta
-            maxx = x + filter.radius * sourceDelta
+            minx = x - filter.radius * filterExtent
+            maxx = x + filter.radius * filterExtent
             minsi = int(minx * float32(sourceLen))
             maxsi = int(ceil(maxx * float32(sourceLen)))
         var
@@ -80,7 +83,7 @@ proc computeMaccOps*(targetLen, sourceLen: int; filter: Filter): seq[MaccOp] =
             if si < 0 or si >= sourceLen: continue
             let
                 sx = (0.5 + float32(si)) * sourceDelta
-                t = float32(sourceLen) * abs(sx - x)
+                t = filterDomain * abs(sx - x)
                 weight = filter.function(t)
             if weight != 0:
                 result.add (targetIndex, si, weight)
