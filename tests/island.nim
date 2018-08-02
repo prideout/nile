@@ -11,10 +11,9 @@ const NFRAMES = 30
 const TILE_RESOLUTION = 1024 # 3840
 const VIEWPORT_RESOLUTION = int(TILE_RESOLUTION / 4)
 
-proc enlargeViewport(vp: Viewport, mag: float): Viewport =
-    let
-        c = vp.center()
-        s = vp.size() / 2
+proc enlargeViewport*(vp: Viewport, mag: float): Viewport =
+    let c = vp.center()
+    let s = vp.size() / 2
     return viewport(c - s * mag, c + s * mag)
 
 proc shrinkViewport(vp: Viewport, src: Vec2f, resolution: int, dst: Vec2f = (0.5f, 0.5f),
@@ -25,6 +24,9 @@ proc shrinkViewport(vp: Viewport, src: Vec2f, resolution: int, dst: Vec2f = (0.5
         pandelta = panspeed * pandir
         zoomdelta = zoomspeed * vpextent / float32(resolution)
     return viewport(vp.lower + pandelta + zoomdelta, vp.upper + pandelta - zoomdelta)
+
+proc `*`(vp: Viewport, scale: float32): Viewport =
+    (vp.left * scale, vp.top * scale, vp.right * scale, vp.bottom * scale)
 
 proc marchSegment(grid: Grid, p0: Vec2f, p1: Vec2f): Vec2f =
     let
@@ -41,28 +43,26 @@ proc marchSegment(grid: Grid, p0: Vec2f, p1: Vec2f): Vec2f =
     return p
 
 proc genIsland(seed: int, size: int, view: Viewport = ENTIRE): Grid =
-    let
-        s2 = size * 2
-        splat = newGrid("000 010 000").resize(s2, s2, FilterHermite)
-    var vp = enlargeViewport(view, 32)
+    let s2 = size * 2
+    let splat = newGrid("000 010 000").resize(s2, s2, FilterHermite)
+    var vp = view * 32.0f
     if verbose: echo "    Layer 1..."
     var g = generateGradientNoise(seed, s2, s2, vp)
     if verbose: echo "    Layer 2..."
-    vp = enlargeViewport(vp, 2)
+    vp = vp * 2.0f
     g += generateGradientNoise(seed, s2, s2, vp) / 2
     if verbose: echo "    Layer 3..."
-    vp = enlargeViewport(vp, 2)
+    vp = vp * 2.0f
     g += generateGradientNoise(seed, s2, s2, vp) / 4
     if verbose: echo "    Layer 4..."
-    vp = enlargeViewport(vp, 2)
+    vp = vp * 2.0f
     g += generateGradientNoise(seed, s2, s2, vp) / 8
     g += splat / 2
     g *= splat
     let
         r0 = int(float(size) - size / 2)
         r1 = int(float(size) + size / 2)
-        g2 = g.step(0.1)
-        g3 = g2 - g * g2 * 1.0f
+        g3 = (1.0 - g) * g.step(0.1)
     return g3.crop(r0, r0, r1, r1)
 
 var view: Viewport = (0.375f, 0.375f, 0.625f, 0.625f)
@@ -77,32 +77,32 @@ when true:
         row1 = hstack(isles[4], isles[5], isles[6], isles[7])
     vstack(row0, row1).drawGrid(4, 2, 0.3f).savePNG("_islands.png")
 
+let
+    p0 = (0.6f, 0.0f)
+    p1 = (0.4f, 1.0f)
+var target: Vec2f
+
+proc exportPNG(island: Grid, frame: int): void =
+    echo "Shrinking image..."
+    let small = island.resize(VIEWPORT_RESOLUTION, VIEWPORT_RESOLUTION, FilterHermite)
+    echo "Drawing overlay..."
+    let canvas = newCanvas(small.width, small.height)
+    canvas.setColor(0.5, 0.0, 0.0, 0.75).moveTo(p0).lineTo(p1).stroke()
+    canvas.setColor(0.0, 0.0, 0.0, 1.0).circle(target, radius = 0.01).fill()
+    canvas.setColor(1.0, 1.0, 1.0, 1.0).circle(target, radius = 0.01).stroke()
+    echo "Saving PNG..."
+    var im = newImageFromLuminance(small)
+    let overlay = canvas.toImage()
+    im = im.addOverlay(overlay)
+    im.savePNG(fmt"frame-{frame:03}.png")
+
 echo "Generating island..."
 var island = genIsland(9, TILE_RESOLUTION, view)
 
 echo "Marching segment..."
-let
-    p0 = (0.6f, 0.0f)
-    p1 = (0.4f, 1.0f)
-    target = island.marchSegment(p0, p1)
-
-echo "Shrinking image..."
-island = island.resize(VIEWPORT_RESOLUTION, VIEWPORT_RESOLUTION, FilterHermite)
-
-echo "Drawing overlay..."
-let canvas = newCanvas(island.width, island.height)
-canvas.setColor(0.5, 0.0, 0.0, 0.75).moveTo(p0).lineTo(p1).stroke()
-canvas.setColor(0.0, 0.0, 0.0, 1.0).circle(target, radius = 0.01).fill()
-canvas.setColor(1.0, 1.0, 1.0, 1.0).circle(target, radius = 0.01).stroke()
-
-echo "Saving PNG..."
-var im = newImageFromLuminance(island)
-echo "    Converting canvas..."
-let overlay = canvas.toImage()
-echo "    Compositing..."
-im = im.addOverlay(overlay)
-echo "    Saving..."
-im.savePNG("big.png")
+target = island.marchSegment(p0, p1)
+    
+exportPNG(island, frame=0)
 
 for frame in 0..<NFRAMES:
     let fname = fmt"frame-{frame:03}.png"
