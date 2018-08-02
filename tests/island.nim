@@ -15,7 +15,7 @@ proc enlargeViewport(vp: Viewport, mag: float): Viewport =
     let
         c = vp.center()
         s = vp.size() / 2
-    return viewport(vp.center() - s * mag, vp.center() + s * mag)
+    return viewport(c - s * mag, c + s * mag)
 
 proc shrinkViewport(vp: Viewport, src: Vec2f, resolution: int, dst: Vec2f = (0.5f, 0.5f),
         zoomspeed: float32 = 10, panspeed: float32 = 0.05): Viewport =
@@ -40,23 +40,22 @@ proc marchSegment(grid: Grid, p0: Vec2f, p1: Vec2f): Vec2f =
         if p.x < 0 or p.x > 1 or p.y < 0 or p.y > 1: break
     return p
 
-# 0.375,0.375 through 0.625, 0.625
-#     find center and enlarge by 32x for the first layer
-#     should map to -4, +4 for the first layer
-#     should map to -8, +8 for the second layer
-
-proc genIsland(seed: int, size: int, vp: Viewport = ENTIRE): Grid =
+proc genIsland(seed: int, size: int, view: Viewport = ENTIRE): Grid =
     let
         s2 = size * 2
         splat = newGrid("000 010 000").resize(s2, s2, FilterHermite)
+    var vp = enlargeViewport(view, 32)
     if verbose: echo "    Layer 1..."
-    var g = generateGradientNoise(seed, s2, s2, 4.0f)
+    var g = generateGradientNoise(seed, s2, s2, vp)
     if verbose: echo "    Layer 2..."
-    g += generateGradientNoise(seed, s2, s2, 8.0f) / 2
+    vp = enlargeViewport(vp, 2)
+    g += generateGradientNoise(seed, s2, s2, vp) / 2
     if verbose: echo "    Layer 3..."
-    g += generateGradientNoise(seed, s2, s2, 16.0f) / 4
+    vp = enlargeViewport(vp, 2)
+    g += generateGradientNoise(seed, s2, s2, vp) / 4
     if verbose: echo "    Layer 4..."
-    g += generateGradientNoise(seed, s2, s2, 32.0f) / 8
+    vp = enlargeViewport(vp, 2)
+    g += generateGradientNoise(seed, s2, s2, vp) / 8
     g += splat / 2
     g *= splat
     let
@@ -66,18 +65,20 @@ proc genIsland(seed: int, size: int, vp: Viewport = ENTIRE): Grid =
         g3 = g2 - g * g2 * 1.0f
     return g3.crop(r0, r0, r1, r1)
 
+var view: Viewport = (0.375f, 0.375f, 0.625f, 0.625f)
+
 when true:
     echo "Generating island test grid..."
     var isles: array[8, Grid]
     for seed in 0..<isles.len():
-        isles[seed] = genIsland(seed, 128)
+        isles[seed] = genIsland(seed, 128, view)
     let
         row0 = hstack(isles[0], isles[1], isles[2], isles[3])
         row1 = hstack(isles[4], isles[5], isles[6], isles[7])
     vstack(row0, row1).drawGrid(4, 2, 0.3f).savePNG("_islands.png")
 
 echo "Generating island..."
-var island = genIsland(9, TILE_RESOLUTION)
+var island = genIsland(9, TILE_RESOLUTION, view)
 
 echo "Marching segment..."
 let
@@ -102,8 +103,6 @@ echo "    Compositing..."
 im = im.addOverlay(overlay)
 echo "    Saving..."
 im.savePNG("big.png")
-
-var view: Viewport = (0.375f, 0.375f, 0.625f, 0.625f)
 
 for frame in 0..<NFRAMES:
     let fname = fmt"frame-{frame:03}.png"
