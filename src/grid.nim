@@ -2,6 +2,7 @@ import math
 import sequtils
 import strutils
 
+import ./vector
 import private/utils
 
 let FilterHermite* = Filter(radius: 1, function: proc (x: float32): float32 =
@@ -355,8 +356,6 @@ proc vstack*(a: Grid, b: varargs[Grid]): Grid =
             for srow in 0..<g.height:
                 result.setPixel(col, trow, g.getPixel(col, srow))
                 inc trow
-
-type Viewport* = tuple[left, top, right, bottom: float32]
 
 # Creates a scalar field with C1 continuity whose values are roughly in [-0.8, +0.8]
 # The viewport that spans from [-1,-1] to [+1,+1] is a 2x2 grid of surflets.

@@ -11,29 +11,39 @@ const NFRAMES = 30
 const TILE_RESOLUTION = 1024 # 3840
 const VIEWPORT_RESOLUTION = int(TILE_RESOLUTION / 4)
 
-type Viewport = tuple[lower, upper: Vec2f]
-const ENTIRE = ((0.0f, 0.0f), (1.0f, 1.0f))
+proc enlargeViewport(vp: Viewport, mag: float): Viewport =
+    let
+        c = vp.center()
+        s = vp.size() / 2
+    return viewport(vp.center() - s * mag, vp.center() + s * mag)
 
 proc shrinkViewport(vp: Viewport, src: Vec2f, resolution: int, dst: Vec2f = (0.5f, 0.5f),
         zoomspeed: float32 = 10, panspeed: float32 = 0.05): Viewport =
     let
-        vpextent = vp.upper - vp.lower
+        vpextent = vp.upper() - vp.lower()
         pandir = src - dst
         pandelta = panspeed * pandir
-        zoomdelta = (0.0f, 0.0f) # zoomspeed * vpextent / float32(resolution)
-    return (vp.lower + pandelta + zoomdelta, vp.upper + pandelta - zoomdelta)
+        zoomdelta = zoomspeed * vpextent / float32(resolution)
+    return viewport(vp.lower + pandelta + zoomdelta, vp.upper + pandelta - zoomdelta)
 
 proc marchSegment(grid: Grid, p0: Vec2f, p1: Vec2f): Vec2f =
-    let delta = 1 / float(max(grid.width, grid.height))
-    var p = p0
-    let dir = delta * (p1 - p0).hat()
-    let sign0 = grid.sampleNearest(p0.x, p0.y) <= 0
-    var sign = sign0
+    let
+        delta = 1 / float(max(grid.width, grid.height))
+        dir = delta * (p1 - p0).hat()
+        sign0 = grid.sampleNearest(p0.x, p0.y) <= 0
+    var
+        p = p0
+        sign = sign0
     while sign == sign0:
         p += dir
         sign = grid.sampleNearest(p.x, p.y) <= 0
         if p.x < 0 or p.x > 1 or p.y < 0 or p.y > 1: break
     return p
+
+# 0.375,0.375 through 0.625, 0.625
+#     find center and enlarge by 32x for the first layer
+#     should map to -4, +4 for the first layer
+#     should map to -8, +8 for the second layer
 
 proc genIsland(seed: int, size: int, vp: Viewport = ENTIRE): Grid =
     let
@@ -64,7 +74,7 @@ when true:
     let
         row0 = hstack(isles[0], isles[1], isles[2], isles[3])
         row1 = hstack(isles[4], isles[5], isles[6], isles[7])
-    vstack(row0, row1).drawGrid(4, 2, 0.3f).savePNG("islands.png")
+    vstack(row0, row1).drawGrid(4, 2, 0.3f).savePNG("_islands.png")
 
 echo "Generating island..."
 var island = genIsland(9, TILE_RESOLUTION)
@@ -93,11 +103,11 @@ im = im.addOverlay(overlay)
 echo "    Saving..."
 im.savePNG("big.png")
 
-var viewport: Viewport = ((0.375f,0.375f), (0.625f,0.625f))
+var view: Viewport = (0.375f, 0.375f, 0.625f, 0.625f)
 
 for frame in 0..<NFRAMES:
     let fname = fmt"frame-{frame:03}.png"
-    echo fmt"{fname} ({viewport.lower.x:+05.2},{viewport.lower.y:+05.2} " &
-        fmt"{viewport.upper.x:+05.2},{viewport.upper.y:+05.2}) " &
+    echo fmt"{fname} ({view.lower.x:+05.2},{view.lower.y:+05.2} " &
+        fmt"{view.upper.x:+05.2},{view.upper.y:+05.2}) " &
         fmt"{target.x:+05.2},{target.y:+05.2}"
-    viewport = shrinkViewport(viewport, target, VIEWPORT_RESOLUTION)
+    view = shrinkViewport(view, target, VIEWPORT_RESOLUTION)
