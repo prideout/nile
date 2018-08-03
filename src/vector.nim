@@ -37,9 +37,3 @@ proc viewport*(lower, upper: Vec2f): Viewport = (lower.x, lower.y, upper.x, uppe
 
 proc `*`*(vp: Viewport, scale: float32): Viewport =
     (vp.left * scale, vp.top * scale, vp.right * scale, vp.bottom * scale)
-
-proc `*=`*(vp: ref Viewport, scale: float32): void =
-    vp.left *= scale
-    vp.top *= scale
-    vp.right *= scale
-    vp.bottom *= scale

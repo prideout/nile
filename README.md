@@ -16,6 +16,9 @@ It's also a library for generally manipulating and generating images.
 
     see notes later in this file
 
+    https://twitter.com/fenharel/status/1023968156203663360
+    https://www.danielsmaps.com/portfolio/
+
     making video
         import os
         execShellCmd(command: string)
