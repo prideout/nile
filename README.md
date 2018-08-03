@@ -1,9 +1,9 @@
 [![Build Status](https://travis-ci.org/prideout/lava.svg?branch=master)](https://travis-ci.org/prideout/lava)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/prideout/clumpy/blob/master/LICENSE)
 
-**Nile** is a library for manipulating and generating images.
+**Nile** creates map tiles for an imaginary world.
 
-For more information, read [the docs]().
+It's also a library for generally manipulating and generating images.
 
 <!--
 

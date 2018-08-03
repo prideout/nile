@@ -2,7 +2,7 @@ import math
 import sequtils
 import strutils
 
-import ./vector
+import vector
 import private/utils
 
 let FilterHermite* = Filter(radius: 1, function: proc (x: float32): float32 =

@@ -5,11 +5,8 @@
 import strformat
 import nile
 
-var verbose = false
-
 const NFRAMES = 30
-const TILE_RESOLUTION = 2048 # 3840
-const VIEWPORT_RESOLUTION = int(TILE_RESOLUTION / 4)
+const VIEWPORT_RESOLUTION = 512
 
 proc enlargeViewport*(vp: Viewport, mag: float): Viewport =
     let c = vp.center()
@@ -25,9 +22,6 @@ proc shrinkViewport(vp: Viewport, src: Vec2f, resolution: int, dst: Vec2f = (0.5
         zoomdelta = zoomspeed * vpextent / float32(resolution)
     return viewport(vp.lower + pandelta + zoomdelta, vp.upper + pandelta - zoomdelta)
 
-proc `*`(vp: Viewport, scale: float32): Viewport =
-    (vp.left * scale, vp.top * scale, vp.right * scale, vp.bottom * scale)
-
 proc marchSegment(grid: Grid, p0: Vec2f, p1: Vec2f): Vec2f =
     let
         delta = 1 / float(max(grid.width, grid.height))
@@ -42,49 +36,11 @@ proc marchSegment(grid: Grid, p0: Vec2f, p1: Vec2f): Vec2f =
         if p.x < 0 or p.x > 1 or p.y < 0 or p.y > 1: break
     return p
 
-proc genSplat(size: int, center: Vec2f, scale: float): Grid =
-    result = newGrid(size, size)
-    let dx = 1.0f / float32(size)
-    var y = 0.0f
-    var i = 0
-    for row in 0..<size:
-        var x = 0.0f
-        for col in 0..<size:
-            var t = scale * len((x,y) - center)
-            var v = FilterHermite.function(t)
-            result.data[i] = v * v * v
-            inc i
-            x += dx
-        y += dx
-
-proc genIsland(seed: int, size: int, view: Viewport = ENTIRE): Grid =
-    let splat = genSplat(size, (0.5f, 0.5f), 1.0f)
-    var vp = view * 16.0f
-    if verbose: echo "    Layer 1..."
-    var g = generateGradientNoise(seed, size, size, vp)
-    if verbose: echo "    Layer 2..."
-    vp = vp * 2.0f
-    g += generateGradientNoise(seed + 1, size, size, vp) / 2
-    if verbose: echo "    Layer 3..."
-    vp = vp * 2.0f
-    g += generateGradientNoise(seed + 2, size, size, vp) / 4
-    if verbose: echo "    Layer 4..."
-    vp = vp * 2.0f
-    g += generateGradientNoise(seed + 3, size, size, vp) / 8
-    if verbose: echo "    Layer 5..."
-    vp = vp * 2.0f
-    g += generateGradientNoise(seed + 4, size, size, vp) / 16
-    g += splat / 2
-    g *= splat
-    return (1.0 - g) * g.step(0.1)
-
-var view: Viewport = (0.375f, 0.375f, 0.625f, 0.625f)
-
 when true:
     echo "Generating island test grid..."
     var isles: array[8, Grid]
     for seed in 0..<isles.len():
-        isles[seed] = genIsland(seed, 128, view)
+        isles[seed] = generateRootTile(128, seed).data
     let
         row0 = hstack(isles[0], isles[1], isles[2], isles[3])
         row1 = hstack(isles[4], isles[5], isles[6], isles[7])
@@ -110,12 +66,13 @@ proc exportPNG(island: Grid, frame: int): void =
     im.savePNG(fmt"frame-{frame:03}.png")
 
 echo "Generating island..."
-var island = genIsland(9, TILE_RESOLUTION, view)
+var island = generateRootTile(2048, 9).data
 
 echo "Marching segment..."
 target = island.marchSegment(p0, p1)
-    
 exportPNG(island, frame=0)
+
+var view: Viewport = (0.375f, 0.375f, 0.625f, 0.625f)
 
 for frame in 0..<NFRAMES:
     let fname = fmt"frame-{frame:03}.png"

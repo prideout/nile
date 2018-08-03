@@ -3,6 +3,7 @@ import math
 type
     Vec2f* = tuple[x, y: float32]
     Vec2i* = tuple[x, y: int32]
+    Vec3ii* = tuple[x, y, z: int64]
     Viewport* = tuple[left, top, right, bottom: float32]
 
 const ENTIRE* = (0.0f, 0.0f, 1.0f, 1.0f)
@@ -33,3 +34,12 @@ proc upper*(vp: Viewport): Vec2f = (x: vp.right, y: vp.bottom)
 proc center*(vp: Viewport): Vec2f = (vp.lower() + vp.upper()) / 2
 proc size*(vp: Viewport): Vec2f = vp.upper() - vp.lower()
 proc viewport*(lower, upper: Vec2f): Viewport = (lower.x, lower.y, upper.x, upper.y)
+
+proc `*`*(vp: Viewport, scale: float32): Viewport =
+    (vp.left * scale, vp.top * scale, vp.right * scale, vp.bottom * scale)
+
+proc `*=`*(vp: ref Viewport, scale: float32): void =
+    vp.left *= scale
+    vp.top *= scale
+    vp.right *= scale
+    vp.bottom *= scale
