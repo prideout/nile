@@ -44,7 +44,7 @@ proc getTileBounds*(tile: Tile): Viewport =
         y1 = (1.0 + float(tile.index.y)) / ntiles
     (float32(x0), float32(y0), float32(x1), float32(y1))
 
-proc generateFalloff(size: int, view: Viewport): Grid =
+proc generateFalloff(size: int, view: Viewport, scale: float = 2): Grid =
     result = newGrid(size, size)
     let
         dx = (view.right - view.left) / float32(size)
@@ -55,8 +55,7 @@ proc generateFalloff(size: int, view: Viewport): Grid =
         var x = view.left
         for col in 0..<size:
             var t = len((x,y) - (0.5f, 0.5f))
-            var v = FilterHermite.function(t)
-            result.data[i] = v * v * v
+            result.data[i] = FilterHermite.function(scale * t)
             inc i
             x += dx
         y += dy
@@ -86,7 +85,7 @@ proc generateRootTile*(resolution, seed: int): Tile =
     g *= 2.0f
     g += generateGradientNoise(seed + 4, size, size, vp4)
     g /= 16
-    g += falloff / 2
+    g += 0.5
     g *= falloff
     result.data = (1.0 - g) * g.step(0.1)
     
@@ -108,7 +107,6 @@ proc generateChild(child: Tile, parent: Tile, subview: Viewport): void =
         top = int(subview.top * fsize)
         right = int(subview.right * fsize)
         bottom = int(subview.bottom * fsize)
-    # echo fmt"VP = {view.left:7.4} {view.top:7.4} {view.right:7.4} {view.bottom:7.4}"
     child.base = parent.base.crop(left, top, right, bottom).resize(size, size, FilterGaussian)
     child.base += generateGradientNoise(seed, size, size, vp1)
     child.base *= 2.0f
@@ -118,11 +116,9 @@ proc generateChild(child: Tile, parent: Tile, subview: Viewport): void =
     g *= 2.0f
     g += generateGradientNoise(seed + 3, size, size, vp4)
     g /= 16
-    g += falloff / 2
+    g += 0.5
     g *= falloff
     child.data = (1.0 - g) * g.step(0.1)
-
-    #child.data = parent.data.crop(left, top, right, bottom).resize(size, size, FilterGaussian)
 
 proc generateChild*(parent: Tile, index: Vec3ii): Tile =
     assert(index.z == parent.index.z + 1)

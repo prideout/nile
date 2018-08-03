@@ -6,7 +6,7 @@ import strformat
 import nile
 import os
 
-const NFRAMES = 3
+const NFRAMES = 0
 const VIEWPORT_RESOLUTION = 256
 
 proc enlargeViewport*(vp: Viewport, mag: float): Viewport =
@@ -76,19 +76,20 @@ proc exportPNG(tile: Tile, frame: int): void =
     im.savePNG(fname)
     showPNG(fname)
 
-echo "Generating island..."
-var parentTile = generateRootTile(2048, 9)
+when NFRAMES > 0:
+    echo "Generating root..."
+    var parentTile = generateRootTile(2048, 9)
 
-echo "Marching segment..."
-target = parentTile.data.marchSegment(p0, p1)
-echo fmt"{target.x} , {target.y}"
-exportPNG(parentTile, frame=0)
+    echo "Marching segment..."
+    target = parentTile.data.marchSegment(p0, p1)
+    echo fmt"{target.x} , {target.y}"
+    exportPNG(parentTile, frame=0)
 
-for frame in 1..<NFRAMES:
-    let zoom = frame
-    let childIndex = getTileAt(target, zoom)
-    echo fmt"{frame:03} :: {childIndex.x:03} {childIndex.y:03}"
-    let childTile = generateChild(parentTile, childIndex)
-    # echo fmt"VP = {view.left:7.4} {view.top:7.4} {view.right:7.4} {view.bottom:7.4}"
-    exportPNG(childTile, frame)
-    parentTile = childTile
+    for frame in 1..<NFRAMES:
+        let zoom = frame
+        let childIndex = getTileAt(target, zoom)
+        echo fmt"{frame:03} :: {childIndex.x:03} {childIndex.y:03}"
+        let childTile = generateChild(parentTile, childIndex)
+        # echo fmt"VP = {view.left:7.4} {view.top:7.4} {view.right:7.4} {view.bottom:7.4}"
+        exportPNG(childTile, frame)
+        parentTile = childTile
