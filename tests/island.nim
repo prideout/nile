@@ -30,6 +30,8 @@ let
     gradient = newColorGradient(PALETTE)
     fname = fmt"island.png"
 
+discard createEdt(tile.mask)
+
 image.applyColorGradient(gradient)
 image.savePNG(fname)
 showPNG(fname)

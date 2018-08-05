@@ -160,7 +160,7 @@ proc addPixel*(g: Grid, x, y: int, k: float32 = 1): void =
 proc getPixel*(g: Grid, x, y: int): float32 =
     assert(x >= 0 and x < g.width and y >= 0 and y < g.height)
     g.data[y * g.width + x]
-
+    
 # Takes floating point coordinates in [0,+1] and returns the nearest pixel value.
 proc sampleNearest*(g: Grid, x, y: float32): float32 =
     let col = max(0, min(int(float32(g.width) * x), g.width - 1))
