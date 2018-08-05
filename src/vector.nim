@@ -3,6 +3,7 @@ import math
 type
     Vec2f* = tuple[x, y: float32]
     Vec2i* = tuple[x, y: int32]
+    Vec3f* = tuple[x, y, z: float32]
     Vec3ii* = tuple[x, y, z: int64]
     Viewport* = tuple[left, top, right, bottom: float32]
 
@@ -21,10 +22,20 @@ proc `-`*(a: Vec2i, b: int32): Vec2i = (a.x - b, a.y - b)
 proc `+`*(a: Vec2i, b: Vec2i): Vec2i = (a.x + b.x, a.y + b.y)
 proc `-`*(a: Vec2i, b: Vec2i): Vec2i = (a.x - b.y, a.y - b.y)
 
+proc `+`*(a: Vec3f, b: Vec3f): Vec3f = (a.x + b.x, a.y + b.y, a.z + b.z)
+proc `-`*(a: Vec3f, b: Vec3f): Vec3f = (a.x - b.x, a.y - b.y, a.z - b.z)
+proc `/`*(a: Vec3f, b: float32): Vec3f = (a.x / b, a.y / b, a.z / b)
+
+
 proc `+=`*(a: var Vec2f, b: Vec2f): void =
     a.x += b.x
     a.y += b.y
 
+proc `+=`*(a: var Vec3f, b: Vec3f): void =
+    a.x += b.x
+    a.y += b.y
+    a.y += b.z
+    
 proc dot*(a: Vec2f, b: Vec2f): auto = a.x * b.x + a.y * b.y
 proc len*(v: Vec2f): auto = sqrt(dot(v, v))
 proc hat*(v: Vec2f): auto = v / v.len()

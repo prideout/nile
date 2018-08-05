@@ -1,4 +1,6 @@
 import grid
+import strformat
+import vector
 
 type
     Image* = ref object
@@ -7,6 +9,11 @@ type
         grn*: Grid
         blu*: Grid
         alp*: Grid
+    ColorGradient* = ref object
+        red: array[256, float32]
+        grn: array[256, float32]
+        blu: array[256, float32]
+        alp: array[256, float32]
 
 proc addOverlay*(a, b: Image): Image =
     new(result)
@@ -63,4 +70,52 @@ proc toDataString*(img: Image): string =
             result[i + 2] = char((img.blu.data[j] * 255).clamp(0, 255))
             result[i + 3] = char((img.alp.data[j] * 255).clamp(0, 255))
             i += 4
+            inc j
+
+# Given 0xRRGGBB, returns a 3-tuple in [0,1]
+proc colorToFloat3(color: int): Vec3f =
+    let
+        red = float32((color shr 16) and 0xff)
+        grn = float32((color shr 08) and 0xff)
+        blu = float32((color shr 00) and 0xff)
+    (red / 255.0f, grn / 255.0f, blu / 255.0f)
+
+proc newColorGradient*(colors: seq[int]): ColorGradient =
+    new(result)
+    assert (colors.len() mod 2) == 0
+    assert colors.len() > 2
+    assert colors[0] == 0
+    assert colors[colors.len() - 2] == 255
+    var i = 0
+    while i < colors.len() - 2:
+        let
+            currval = colors[i]
+            nextval = colors[i + 2]
+            currrgb = colorToFloat3(colors[i + 1])
+            nextrgb = colorToFloat3(colors[i + 3])
+        assert(currval >= 0 and currval < 256)
+        assert(nextval >= 0 and nextval < 256)
+        assert(nextval > currval)
+        let
+            ncols = nextval - currval
+            del = (nextrgb - currrgb) / float(ncols)
+        var col = currrgb
+        for j in currval..nextval:
+            result.red[j] = col.x
+            result.grn[j] = col.y
+            result.blu[j] = col.z
+            col += del
+        i += 2
+
+proc applyColorGradient*(image: Image, colors: ColorGradient): void =
+    var j = 0
+    for row in 0..<image.height:
+        for col in 0..<image.width:
+            let
+                red = (image.red.data[j] * 255).clamp(0, 255)
+                grn = (image.grn.data[j] * 255).clamp(0, 255)
+                blu = (image.blu.data[j] * 255).clamp(0, 255)
+            image.red.data[j] = colors.red[int(red)]
+            image.grn.data[j] = colors.grn[int(grn)]
+            image.blu.data[j] = colors.blu[int(blu)]
             inc j
