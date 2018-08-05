@@ -1,9 +1,8 @@
-[![Build Status](https://travis-ci.org/prideout/lava.svg?branch=master)](https://travis-ci.org/prideout/lava)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/prideout/clumpy/blob/master/LICENSE)
 
 **Nile** creates map tiles for an imaginary world.
 
-It's also a library for generally manipulating and generating images.
+It's also a very incomplete library for generally manipulating and generating images.
 
 <!--
 
@@ -30,21 +29,34 @@ It's also a library for generally manipulating and generating images.
         https://en.wikibooks.org/wiki/FFMPEG_An_Intermediate_Guide/image_sequence
         ffmpeg -i image-%03d.png video.webm
 
-# SEE ALSO
+    "Always be minifying"
 
-    https://nimble.directory/search?query=graphics
-    http://rnduja.github.io/2015/10/21/scientific-nim/
-    https://narimiran.github.io/2018/05/10/python-numpy-nim.html
-    https://github.com/stavenko/nim-glm
-    https://github.com/unicredit/neo
-    http://entropymine.com/imageworsener/pixelmixing/
-    Canvas
-        Model from Skia classes
-        https://github.com/memononen/nanosvg
-        https://nimble.directory/pkg/nimagg (the AGG library, hand ported from C, seems nice)
-        https://nimble.directory/pkg/suffer (looks like a personal project; draws 2D shapes with pure nim and depends on a few C libraries)
+    - In other words, the most recently rendered tile is always between 2x and 4x the viewport size.
+    - Magnifying produces pixelation or blurriness
+    - Evaluating noise in real time causes peninsulas to morph into islands, etc.
+    - We get free AA because we're supersampling
+    - If the tile were always bigger than the viewport, we can do fun things with distance fields.
 
-# TO BE DONE
+    Strategy:
+    - Window is 960x540, Viewport is 960x960 BaseTile (L_f32) and CurrentTile (L_f32) are both 3840x3840.
+    - Initial Viewport is 0.375,0.375 through 0.625, 0.625
+    - Two floating-point tiles: BaseTile (low freq only) and CurrentTile (BaseTile + 3 layers).
+    - When zooming, as soon as minification hits the 2x boundary (i.e. when vp extent is >= 0.5)
+        - Re-render the CurrentTile (but with only 1 additional layer) at full res using the current vp
+        - Normalize CurrentTile pixel values to [-1,+1] but do not offset (0 should not move).
+        - Copy CurrentTile to BaseTile.
+        - Add 3 noise layers to CurrentTile.
+        - Reset the Viewport to 0.375,0.375 through 0.625, 0.625
+
+    According to wikipedia, Mandelbrot is an "escape-time" fractal whereas Brownian surfaces are "random
+    fractals" because they are generated via stochastic rules. Arbitrary precision libraries like BLAH
+    can help.
+
+    Binary Ninja or github cutter
+
+# PROMOTE INTO AN ACTUAL IMAGE LIBRARY?
+
+    Tagline: "Friendly Image Library in Nim"
 
     Grid
         float => float32, int => int32
@@ -75,39 +87,24 @@ It's also a library for generally manipulating and generating images.
         "named 'cairo.nim', but a file named 'cairowin32.nim' was found. This will be an error "
         "in the future."
 
-# THE INFINITE ISLAND
+    docs
+        look in history for "Remove docs" and revert
+        brew install mkdocs
+        pip install mkdocs-material
+        mkdocs serve
+        mkdocs build -d /tmp/docs
+        git checkout gh-pages; rsync /tmp/docs ./
 
-    "Always be minifying"
-
-    - In other words, the most recently rendered tile is always between 2x and 4x the viewport size.
-    - Magnifying produces pixelation or blurriness
-    - Evaluating noise in real time causes peninsulas to morph into islands, etc.
-    - We get free AA because we're supersampling
-    - If the tile were always bigger than the viewport, we can do fun things with distance fields.
-
-    Strategy:
-    - Window is 960x540, Viewport is 960x960 BaseTile (L_f32) and CurrentTile (L_f32) are both 3840x3840.
-    - Initial Viewport is 0.375,0.375 through 0.625, 0.625
-    - Two floating-point tiles: BaseTile (low freq only) and CurrentTile (BaseTile + 3 layers).
-    - When zooming, as soon as minification hits the 2x boundary (i.e. when vp extent is >= 0.5)
-        - Re-render the CurrentTile (but with only 1 additional layer) at full res using the current vp
-        - Normalize CurrentTile pixel values to [-1,+1] but do not offset (0 should not move).
-        - Copy CurrentTile to BaseTile.
-        - Add 3 noise layers to CurrentTile.
-        - Reset the Viewport to 0.375,0.375 through 0.625, 0.625
-
-    According to wikipedia, Mandelbrot is an "escape-time" fractal whereas Brownian surfaces are "random
-    fractals" because they are generated via stochastic rules. Arbitrary precision libraries like BLAH
-    can help.
-
-    Binary Ninja or github cutter
-
-# HOW TO BUILD DOCS
-
-    brew install mkdocs
-    pip install mkdocs-material
-    mkdocs serve
-    mkdocs build -d /tmp/docs
-    git checkout gh-pages; rsync /tmp/docs ./
+    see also
+        https://nimble.directory/search?query=graphics
+        http://rnduja.github.io/2015/10/21/scientific-nim/
+        https://narimiran.github.io/2018/05/10/python-numpy-nim.html
+        https://github.com/stavenko/nim-glm
+        https://github.com/unicredit/neo
+        Canvas
+            Model from Skia classes
+            https://github.com/memononen/nanosvg
+            https://nimble.directory/pkg/nimagg (the AGG library, hand ported from C, seems nice)
+            https://nimble.directory/pkg/suffer (looks like a personal project; draws 2D shapes with pure nim and depends on a few C libraries)
 
 -->

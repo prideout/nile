@@ -80,6 +80,8 @@ proc colorToFloat3(color: int): Vec3f =
         blu = float32((color shr 00) and 0xff)
     (red / 255.0f, grn / 255.0f, blu / 255.0f)
 
+# TODO: linearize, then delinearize; see
+# https://github.com/prideout/heman/blob/master/src/color.c
 proc newColorGradient*(colors: seq[int]): ColorGradient =
     new(result)
     assert (colors.len() mod 2) == 0
