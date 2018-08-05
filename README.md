@@ -9,6 +9,11 @@ It's also a library for generally manipulating and generating images.
 
 # INFINITE ISLAND
 
+    Add distance field
+    Noise simply perturbs the distance field
+
+    Magnification of the DF should perhaps be MIN
+
     Window is 960x540
     Viewport is 960x960
     BaseTile (L_f32) and CurrentTile (L_f32) are both 3840x3840.

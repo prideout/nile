@@ -15,11 +15,25 @@ type Map* = ref object
     seed: int
 
 type Tile* = ref object
-    base: Grid
-    data*: Grid
-    index: Vec3ii
+    elevation: Grid
+    mask*: Grid
+    index*: Vec3ii
     map: Map
     children: array[4, Tile]
+
+# Transform a coord from a parent tile space into its child's tile space.
+proc transform*(pt: Vec2f, fromTile: Vec3ii, toTile: Vec3ii): Vec2f =
+    assert toTile.z == fromTile.z + 1
+    let
+        nw = (fromTile.x * 2, fromTile.y * 2, fromTile.z + 1)
+        ne = (fromTile.x * 2 + 1, fromTile.y * 2, fromTile.z + 1)
+        sw = (fromTile.x * 2, fromTile.y * 2 + 1, fromTile.z + 1)
+        se = (fromTile.x * 2 + 1, fromTile.y * 2 + 1, fromTile.z + 1)
+    if toTile == nw: return pt * 2.0f
+    if toTile == sw: return (pt.x * 2.0f, (pt.y - 0.5f) * 2.0f)
+    if toTile == ne: return ((pt.x - 0.5f) * 2.0f, pt.y * 2.0f)
+    if toTile == se: return ((pt.x - 0.5f) * 2.0f, (pt.y - 0.5f) * 2.0f)
+    assert(false)
 
 proc getTileCenter*(tile: Tile): Vec2f =
     let
@@ -44,7 +58,7 @@ proc getTileBounds*(tile: Tile): Viewport =
         y1 = (1.0 + float(tile.index.y)) / ntiles
     (float32(x0), float32(y0), float32(x1), float32(y1))
 
-proc generateFalloff(size: int, view: Viewport, scale: float = 1): Grid =
+proc generateFalloff(size: int, view: Viewport): Grid =
     result = newGrid(size, size)
     let
         dx = (view.right - view.left) / float32(size)
@@ -56,7 +70,7 @@ proc generateFalloff(size: int, view: Viewport, scale: float = 1): Grid =
         for col in 0..<size:
             let
                 t = len((x,y) - (0.5f, 0.5f))
-                v = FilterHermite.function(scale * t)
+                v = FilterHermite.function(t)
             result.data[i] = v * v * v
             inc i
             x += dx
@@ -77,9 +91,9 @@ proc generateRootTile*(resolution, seed: int): Tile =
     result.map = new Map
     result.map.resolution = resolution
     result.map.seed = seed
-    result.base = generateGradientNoise(seed, size, size, vp0)
-    result.base *= 2.0f
-    var g = result.base + generateGradientNoise(seed + 1, size, size, vp1)
+    var g = generateGradientNoise(seed, size, size, vp0)
+    g *= 2.0f
+    g += generateGradientNoise(seed + 1, size, size, vp1)
     g *= 2.0f
     g += generateGradientNoise(seed + 2, size, size, vp2)
     g *= 2.0f
@@ -89,38 +103,23 @@ proc generateRootTile*(resolution, seed: int): Tile =
     g /= 16
     g += falloff / 2
     g *= falloff
-    result.data = (1.0 - g) * g.step(0.1)
-    
+    result.elevation = g
+    result.mask = g.step(0.1)
+
 proc generateChild(child: Tile, parent: Tile, subview: Viewport): void =
     let
         map = child.map
-        zoom = child.index.z
-        seed = map.seed + int(zoom)
+        # zoom = child.index.z
+        # seed = map.seed + int(zoom)
         size = map.resolution
         fsize = float(size)
-        view = getTileBounds(child)
-        falloff = generateFalloff(size, view)
-        vp0 = view * 4.0f
-        vp1 = vp0 * 2.0f
-        vp2 = vp1 * 2.0f
-        vp3 = vp2 * 2.0f
-        vp4 = vp3 * 2.0f
         left = int(subview.left * fsize)
         top = int(subview.top * fsize)
         right = int(subview.right * fsize)
         bottom = int(subview.bottom * fsize)
-    child.base = parent.base.crop(left, top, right, bottom).resize(size, size, FilterGaussian)
-    child.base += generateGradientNoise(seed, size, size, vp1)
-    child.base *= 2.0f
-    var g = child.base + generateGradientNoise(seed + 1, size, size, vp2)
-    g *= 2.0f
-    g += generateGradientNoise(seed + 2, size, size, vp3)
-    g *= 2.0f
-    g += generateGradientNoise(seed + 3, size, size, vp4)
-    g /= 16
-    g += falloff / 2
-    g *= falloff
-    child.data = (1.0 - g) * g.step(0.1)
+    let e = parent.elevation.crop(left, top, right, bottom)
+    child.elevation = e.resize(size, size, FilterGaussian)
+    child.mask = child.elevation.step(0.1)
 
 proc generateChild*(parent: Tile, index: Vec3ii): Tile =
     assert(index.z == parent.index.z + 1)

@@ -3,3 +3,4 @@ nimcache
 .vscode
 tests/*
 !tests/*.nim
+default.profraw
