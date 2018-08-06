@@ -1,13 +1,12 @@
 #!/usr/bin/env nim c -d:release --boundChecks:off --verbosity:0 --run
-
 #!/usr/bin/env nim c --debugger:native --run
 
 import strformat
 import nile
 import os
 
-const VIEWPORT_RESOLUTION = 256
-const TILE_RESOLUTION = 256
+const VIEWPORT_RESOLUTION = 512
+const TILE_RESOLUTION = 2048
 const SEED = 9
 
 const PALETTE = @[
@@ -20,7 +19,10 @@ const PALETTE = @[
     255, 0xFFFFFF ] # White
 
 proc showPNG(fname: string): void =
-    discard execShellCmd fmt"imgcat {fname}"
+    if 0 == execShellCmd fmt"which -s imgcat":
+        discard execShellCmd fmt"imgcat {fname}"
+    else:
+        echo fmt"Generated {fname}"
 
 let
     tile = generateRootTile(TILE_RESOLUTION, SEED)

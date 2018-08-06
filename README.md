@@ -1,18 +1,27 @@
-[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/prideout/clumpy/blob/master/LICENSE)
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/prideout/nile/blob/master/LICENSE)
 
-**Nile** creates map tiles for an imaginary world.
+**Nile** creates pictures of imaginary islands. It includes:
 
-It's also a very incomplete library for generally manipulating and generating images.
+- Efficient high-quality resampling of floating-point images. (`filter.nim`)
+- Efficient computation of signed distance fields. (`distance.nim`)
+- Gradient noise generation. (`grid.nim`)
+
+To try it out, do:
+
+`nim c --run tests/island.nim`
+
+Alternatively, simply invoke `island.nim` directly from your shell since it has a shebang. This will
+enable the release flag, creating a very fast native executable.
 
 <!--
 
 # INFINITE ISLAND
 
-    I think there's an issue with images > 256 prolly because of the uint16
+    Fix the out of bounds error
 
-    Fix the color gradient (where is the yellow beach? also: linearize.)
+    Linearize the color gradient (see newColorGradient)
 
-    Noise simply perturbs the distance field
+    For zoom, noise simply perturbs the distance field
 
     Magnification of the DF should perhaps be MIN
 
