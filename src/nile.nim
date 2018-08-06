@@ -4,4 +4,5 @@ include image
 include io
 include vector
 include canvas
+include filter
 include mapgen

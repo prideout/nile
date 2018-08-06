@@ -8,13 +8,11 @@ It's also a very incomplete library for generally manipulating and generating im
 
 # INFINITE ISLAND
 
-    implement Image resize
-
     I think there's an issue with images > 256 prolly because of the uint16
 
-    Noise simply perturbs the distance field
+    Fix the color gradient (where is the yellow beach? also: linearize.)
 
-    Move portions of grid.nim into filtering.nim
+    Noise simply perturbs the distance field
 
     Magnification of the DF should perhaps be MIN
 

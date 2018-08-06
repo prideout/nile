@@ -94,10 +94,17 @@ proc createEdt*(grid: Grid): Grid =
     let inv = 1.0 / float32(width)
     for n in 0..npixels:
         result.data[n] = sqrt(result.data[n]) * inv
-    
-if isMainModule:
-    var seq1 = @[1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f]
-    var sv = Viewf(data: addr seq1, offset: 2)
-    sv.data[1] = 5.0f
-    echo sv.data[0]
-    echo sv.data[1]
+
+proc createSdf*(grid: Grid): Grid =
+    var
+        width = grid.width
+        height = grid.height
+        npixels = width * height
+        positive = createEdt(grid)
+        negative = createEdt(1.0 - grid)
+    new(result)
+    result.width = grid.width
+    result.height = grid.height
+    result.data = newSeq[float32](npixels)
+    for n in 0..npixels:
+        result.data[n] = positive.data[n] - negative.data[n]
