@@ -15,7 +15,7 @@ type Map* = ref object
     seed: int
 
 type Tile* = ref object
-    elevation: Grid
+    elevation*: Grid
     mask*: Grid
     index*: Vec3ii
     map: Map

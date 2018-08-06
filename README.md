@@ -1,3 +1,5 @@
+<img src="https://github.com/prideout/nile/raw/master/island.png" height="256px">
+
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/prideout/nile/blob/master/LICENSE)
 
 **Nile** creates pictures of imaginary islands. It includes:
