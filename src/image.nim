@@ -10,10 +10,10 @@ type
         blu*: Grid
         alp*: Grid
     ColorGradient* = ref object
-        red: array[256, float32]
-        grn: array[256, float32]
-        blu: array[256, float32]
-        alp: array[256, float32]
+        red*: array[256, float32]
+        grn*: array[256, float32]
+        blu*: array[256, float32]
+        alp*: array[256, float32]
 
 proc addOverlay*(a, b: Image): Image =
     new(result)

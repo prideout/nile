@@ -1,5 +1,3 @@
-#!/usr/bin/env nim c -d:release --boundChecks:off --verbosity:0 --run
-
 import grid
 import math
 
@@ -21,7 +19,7 @@ proc `[]`(sv: Viewi, i: int): uint16 = sv.data[sv.offset + i]
 proc `[]`(sv: Viewf, i: int): float32 = sv.data[sv.offset + i]
 proc `[]`(sv: Viewf, i: uint16): float32 = sv.data[sv.offset + int(i)]
 proc sqr(v: float32): float32 = v * v
-proc sqr(v: uint16): float32 = float32(v * v)
+proc sqr(v: uint16): float32 = float32(v) * float32(v)
 proc sqr(v: int): float32 = float32(v * v)
 
 # Low-level function that operates on a single row or column.
@@ -64,7 +62,7 @@ proc createEdt*(grid: Grid): Grid =
     for n in 0..npixels:
         result.data[n] = if grid.data[n] <= 0: 0.0f else: INF
 
-    echo "Processing Columns..."
+    # Process columns
     for x in 0..<width:
         var
             f = Viewf(data: addr ff.data, offset: height * x)
@@ -77,7 +75,7 @@ proc createEdt*(grid: Grid): Grid =
         for y in 0..<height:
             result.set(x, y, d[y])
 
-    echo "Processing Rows..."
+    # Processing rows
     for y in 0..<height:
         var
             f = Viewf(data: addr ff.data, offset: width * y)

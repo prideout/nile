@@ -34,7 +34,7 @@ proc `+=`*(a: var Vec2f, b: Vec2f): void =
 proc `+=`*(a: var Vec3f, b: Vec3f): void =
     a.x += b.x
     a.y += b.y
-    a.y += b.z
+    a.z += b.z
     
 proc dot*(a: Vec2f, b: Vec2f): auto = a.x * b.x + a.y * b.y
 proc len*(v: Vec2f): auto = sqrt(dot(v, v))
