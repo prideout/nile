@@ -19,8 +19,6 @@ enable the release flag, creating a very fast native executable.
 
 # INFINITE ISLAND
 
-    Fix the out of bounds error
-
     Move noise into sep file
 
     ---------------------------------------

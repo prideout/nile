@@ -59,7 +59,7 @@ proc createEdt*(grid: Grid): Grid =
     result.width = width
     result.height = height
     result.data = newSeq[float32](npixels)
-    for n in 0..npixels:
+    for n in 0..<npixels:
         result.data[n] = if grid.data[n] <= 0: 0.0f else: INF
 
     # Process columns
@@ -90,7 +90,7 @@ proc createEdt*(grid: Grid): Grid =
 
     # Post-process by square-rooting and normalizing
     let inv = 1.0 / float32(width)
-    for n in 0..npixels:
+    for n in 0..<npixels:
         result.data[n] = sqrt(result.data[n]) * inv
 
 proc createSdf*(grid: Grid): Grid =
@@ -104,5 +104,5 @@ proc createSdf*(grid: Grid): Grid =
     result.width = grid.width
     result.height = grid.height
     result.data = newSeq[float32](npixels)
-    for n in 0..npixels:
+    for n in 0..<npixels:
         result.data[n] = positive.data[n] - negative.data[n]
