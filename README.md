@@ -19,7 +19,7 @@ enable the release flag, creating a very fast native executable.
 
 # INFINITE ISLAND
 
-    Move noise into sep file
+    Create a 2x1 aspect ratio image, open src, tweet #nimlang 
 
     ---------------------------------------
 

@@ -2,7 +2,9 @@ import math
 import image
 import grid
 
-import private/utils
+type Filter* = object
+    radius*: float32
+    function*: proc (x: float32): float32
 
 let FilterHermite* = Filter(radius: 1, function: proc (x: float32): float32 =
     if x >= 1.0: return 0
@@ -114,6 +116,48 @@ proc resizeNearestFilter*(g: Grid, width, height: int): Grid =
 # Resizes an image by choosing nearest pixels from the source image (does no filtering whatsoever).
 proc resizeNearestFilter*(g: Grid, scale: int): Grid =
     g.resizeNearestFilter(g.width * scale, g.height * scale)
+
+# Regardless of filter type, any resizing operation executes a Multiply-Accumulate (Macc) more
+# than anything else. This can be described as:
+#       targetRow[targetColumn] += sourceRow[sourceColumn] * filterWeight
+# The operands that can be cached from row to row are the two indices and the weight.
+type MaccOp = tuple[targetColumn: int, sourceColumn: int, filterWeight: float32]
+
+# Generates a list of MACC instructions that results in the transformation of a sequence of length
+# "sourceLen" into a sequence of length "targetLen" using the specified filter function.
+proc computeMaccOps(targetLen, sourceLen: int; filter: Filter): seq[MaccOp] =
+    result = newSeq[MaccOp]()
+    let
+        targetDelta = 1 / float32(targetLen)
+        sourceDelta = 1 / float32(sourceLen)
+        minifying = targetLen < sourceLen
+        filterExtent = if minifying: targetDelta else: sourceDelta
+        filterDomain = float32(if minifying: targetLen else: sourceLen)
+    var x = targetDelta / 2
+    for targetIndex in 0..<targetLen:
+        let
+            minx = x - filter.radius * filterExtent
+            maxx = x + filter.radius * filterExtent
+            minsi = int(minx * float32(sourceLen))
+            maxsi = int(ceil(maxx * float32(sourceLen)))
+        var
+            nsamples = 0
+            weightSum = 0.0f
+        for si in minsi..maxsi:
+            if si < 0 or si >= sourceLen: continue
+            let
+                sx = (0.5 + float32(si)) * sourceDelta
+                t = filterDomain * abs(sx - x)
+                weight = filter.function(t)
+            if weight != 0:
+                result.add (targetIndex, si, weight)
+                weightSum += weight
+                inc nsamples
+        if weightSum > 0:
+            while nsamples > 0:
+                result[result.len() - nsamples].filterWeight /= weightSum
+                dec nsamples
+        x += targetDelta
 
 # Resizes an image with the given filter.
 proc resize*(source: Grid, width, height: int, filter: Filter): Grid =

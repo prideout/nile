@@ -3,8 +3,6 @@ import sequtils
 import strutils
 import vector
 
-import private/utils
-
 ## Simple two-dimensional image with floating-point luminance data.
 ## Values are stored in row-major (scanline) order, but coordinates and dimensions use
 ## X Y notation (i.e. columns ⨯ rows) with 0,0 being the top-left.
@@ -227,34 +225,6 @@ proc vstack*(a: Grid, b: varargs[Grid]): Grid =
             for srow in 0..<g.height:
                 result.setPixel(col, trow, g.getPixel(col, srow))
                 inc trow
-
-# Creates a scalar field with C1 continuity whose values are roughly in [-0.8, +0.8]
-# The viewport that spans from [-1,-1] to [+1,+1] is a 2x2 grid of surflets.
-proc generateGradientNoise*(seed: int; width, height: int; viewport: Viewport): Grid =
-    result = newGrid(width, height)
-    let
-        table = newGradientNoiseTable(seed)
-        vpwidth = viewport.right - viewport.left
-        vpheight = viewport.bottom - viewport.top
-        dx = vpwidth / float32(width)
-        sx = viewport.left + dx / 2
-        dy = vpheight / float32(height)
-        sy = viewport.top + dy / 2
-    var i = 0
-    for row in 0..<height:
-        let y = sy - float32(row) * dy
-        for col in 0..<width:
-            let x = sx + float32(col) * dx
-            result.data[i] = table.computeNoiseValue(x, y)
-            inc i
-
-# Creates a scalar field with C1 continuity whose values are roughly in [-0.8, +0.8]
-# Frequency of 1.0 corresponds to a 2x2 grid of surflets.
-proc generateGradientNoise*(seed: int; width, height: int; frequency: float32): Grid =
-    # TODO: pay attention to aspect ratio
-    let f = frequency
-    let viewport = (-f, -f, f, f)
-    generateGradientNoise(seed, width, height, viewport)
 
 # Exports the floating-point data by clamping to [0, 1] and scaling to 255.
 proc toDataString*(g: Grid): string =
