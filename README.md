@@ -8,8 +8,13 @@ It's also a very incomplete library for generally manipulating and generating im
 
 # INFINITE ISLAND
 
-    Add distance field
+    implement Image resize
+
+    I think there's an issue with images > 256 prolly because of the uint16
+
     Noise simply perturbs the distance field
+
+    Move portions of grid.nim into filtering.nim
 
     Magnification of the DF should perhaps be MIN
 

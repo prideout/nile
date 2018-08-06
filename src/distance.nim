@@ -1,6 +1,7 @@
 #!/usr/bin/env nim c -d:release --boundChecks:off --verbosity:0 --run
 
 import grid
+import math
 
 const INF: float32 = 1e20
 
@@ -12,11 +13,38 @@ type Viewi = object
   data: ptr seq[uint16]
   offset: int
 
-# TODO: instead of get / set, overload `[]` and `[]=`
-proc set(sv: var Viewf, i: int, val: float32): void = sv.data[sv.offset + i] = val
-proc get(sv: var Viewf, i: int): float32 = sv.data[sv.offset + i]
 proc get(g: Grid, x, y: int): float32 = g.data[y * g.width + x]
 proc set(g: Grid, x, y: int, v: float32): void = g.data[y * g.width + x] = v
+proc `[]=`(sv: Viewi, i: int, val: uint16): void = sv.data[sv.offset + i] = val
+proc `[]=`(sv: Viewf, i: int, val: float32): void = sv.data[sv.offset + i] = val
+proc `[]`(sv: Viewi, i: int): uint16 = sv.data[sv.offset + i]
+proc `[]`(sv: Viewf, i: int): float32 = sv.data[sv.offset + i]
+proc `[]`(sv: Viewf, i: uint16): float32 = sv.data[sv.offset + int(i)]
+proc sqr(v: float32): float32 = v * v
+proc sqr(v: uint16): float32 = float32(v * v)
+proc sqr(v: int): float32 = float32(v * v)
+
+# Low-level function that operates on a single row or column.
+proc edt(f, d, z: Viewf, w: Viewi, n: int): void =
+    var k: int = 0
+    w[0] = 0
+    z[0] = -INF
+    z[1] = +INF
+    for q in 1..<n:
+        let q2 = float(q) * 2.0f
+        var s = ((f[q] + sqr(q)) - (f[w[k]] + sqr(w[k]))) / (q2 - 2 * float(w[k]))
+        while s <= z[k]:
+            dec k
+            s = ((f[q] + sqr(q)) - (f[w[k]] + sqr(w[k]))) / (q2 - 2 * float(w[k]))
+        inc k
+        w[k] = uint16(q)
+        z[k] = s
+        z[k + 1] = +INF
+    k = 0
+    for q in 0..<n:
+        while z[k + 1] < float32(q):
+            inc k
+        d[q] = sqr(float32(q) - float32(w[k])) + f[w[k]]
 
 proc createEdt*(grid: Grid): Grid =
     new(result)
@@ -34,7 +62,7 @@ proc createEdt*(grid: Grid): Grid =
     result.height = height
     result.data = newSeq[float32](npixels)
     for n in 0..npixels:
-        result.data[n] = if result.data[n] == 0: 0.0f else: INF
+        result.data[n] = if grid.data[n] <= 0: 0.0f else: INF
 
     echo "Processing Columns..."
     for x in 0..<width:
@@ -44,10 +72,10 @@ proc createEdt*(grid: Grid): Grid =
             z = Viewf(data: addr zz.data, offset: (height + 1) * x)
             w = Viewi(data: addr ww, offset: height * x)
         for y in 0..<height:
-            f.set(y, result.get(x, y))
-        # foo()
+            f[y] = result.get(x, y)
+        edt(f, d, z, w, height)
         for y in 0..<height:
-            result.set(x, y, d.get(y))
+            result.set(x, y, d[y])
 
     echo "Processing Rows..."
     for y in 0..<height:
@@ -57,11 +85,16 @@ proc createEdt*(grid: Grid): Grid =
             z = Viewf(data: addr zz.data, offset: (width + 1) * y)
             w = Viewi(data: addr ww, offset: width * y)
         for x in 0..<width:
-            f.set(x, result.get(x, y))
-        # foo()
+            f[x] = result.get(x, y)
+        edt(f, d, z, w, width)
         for x in 0..<width:
-            result.set(x, y, d.get(x))
+            result.set(x, y, d[x])
 
+    # Post-process by square-rooting and normalizing
+    let inv = 1.0 / float32(width)
+    for n in 0..npixels:
+        result.data[n] = sqrt(result.data[n]) * inv
+    
 if isMainModule:
     var seq1 = @[1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f]
     var sv = Viewf(data: addr seq1, offset: 2)

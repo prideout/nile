@@ -6,8 +6,8 @@ import strformat
 import nile
 import os
 
-const VIEWPORT_RESOLUTION = 512
-const TILE_RESOLUTION = 2048
+const VIEWPORT_RESOLUTION = 128
+const TILE_RESOLUTION = 256
 const SEED = 9
 
 const PALETTE = @[
@@ -25,13 +25,12 @@ proc showPNG(fname: string): void =
 let
     tile = generateRootTile(TILE_RESOLUTION, SEED)
     island = tile.mask
-    small = island.resize(VIEWPORT_RESOLUTION, VIEWPORT_RESOLUTION, FilterHermite)
-    image = newImageFromLuminance(small)
     gradient = newColorGradient(PALETTE)
     fname = fmt"island.png"
+    edt = createEdt(tile.mask)
 
-discard createEdt(tile.mask)
-
+var image = newImageFromLuminance(edt / max(edt))
 image.applyColorGradient(gradient)
+# image = image.resize(VIEWPORT_RESOLUTION, VIEWPORT_RESOLUTION, FilterHermite)
 image.savePNG(fname)
 showPNG(fname)
