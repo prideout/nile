@@ -6,7 +6,7 @@
 
 - Efficient high-quality resampling of floating-point images. (`filter.nim`)
 - Efficient computation of signed distance fields. (`distance.nim`)
-- Gradient noise generation. (`grid.nim`)
+- Tweakable generation of gradient noise. (`noise.nim`)
 
 To try it out, do:
 
@@ -21,9 +21,15 @@ enable the release flag, creating a very fast native executable.
 
     Fix the out of bounds error
 
-    Linearize the color gradient (see newColorGradient)
+    Move noise into sep file
+
+    ---------------------------------------
 
     For zoom, noise simply perturbs the distance field
+
+    ---------------------------------------
+
+    Linearize the color gradient (see newColorGradient)
 
     Magnification of the DF should perhaps be MIN
 

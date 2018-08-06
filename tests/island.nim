@@ -1,5 +1,4 @@
 #!/usr/bin/env nim c -d:release --boundChecks:off --verbosity:0 --run
-#!/usr/bin/env nim c --debugger:native --run
 
 import strformat
 import nile

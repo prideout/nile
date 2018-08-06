@@ -97,7 +97,7 @@ proc newColorGradient*(colors: seq[int]): ColorGradient =
             nextrgb = colorToFloat3(colors[i + 3])
         assert(currval >= 0 and currval < 256)
         assert(nextval >= 0 and nextval < 256)
-        assert(nextval > currval)
+        assert(nextval >= currval)
         let
             ncols = nextval - currval
             del = (nextrgb - currrgb) / float(ncols)
