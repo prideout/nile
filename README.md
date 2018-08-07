@@ -1,8 +1,9 @@
-<img src="https://github.com/prideout/nile/raw/master/island.png" height="256px">
+<img src="https://github.com/prideout/nile/raw/master/islands.png" height="256">
 
-[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/prideout/nile/blob/master/LICENSE)
+[![GitHublicense](https://img.shields.io/badge/license-MIT-blue.svg)](
+    https://github.com/prideout/nile/blob/master/LICENSE)
 
-**Nile** creates pictures of imaginary islands. It includes:
+**Nile** generates height maps and images for imaginary islands. It includes:
 
 - Efficient high-quality resampling of floating-point images. (`filter.nim`)
 - Efficient computation of signed distance fields. (`distance.nim`)
@@ -18,10 +19,6 @@ enable the release flag, creating a very fast native executable.
 <!--
 
 # INFINITE ISLAND
-
-    Create a 2x1 aspect ratio image, open src, tweet #nimlang 
-
-    ---------------------------------------
 
     For zoom, noise simply perturbs the distance field
 

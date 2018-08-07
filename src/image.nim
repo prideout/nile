@@ -121,3 +121,31 @@ proc applyColorGradient*(image: Image, colors: ColorGradient): void =
             image.grn.data[j] = colors.grn[int(grn)]
             image.blu.data[j] = colors.blu[int(blu)]
             inc j
+
+proc hstack*(a: Image, b: varargs[Image]): Image =
+    var
+        reds = newSeq[Grid]()
+        grns = newSeq[Grid]()
+        blus = newSeq[Grid]()
+        alps = newSeq[Grid]()
+    for img in items(b):
+        reds.add(img.red)
+        grns.add(img.grn)
+        blus.add(img.blu)
+        alps.add(img.alp)
+    new(result)
+    result.red = hstack(a.red, reds)
+    result.grn = hstack(a.grn, grns)
+    result.blu = hstack(a.blu, blus)
+    result.alp = hstack(a.alp, alps)
+    result.width = result.red.width
+    result.height = result.red.height
+
+proc drawGrid*(image: Image; ncols, nrows: int): void =
+    image.red = image.red.drawGrid(ncols, nrows)
+    image.grn = image.grn.drawGrid(ncols, nrows)
+    image.blu = image.blu.drawGrid(ncols, nrows)
+    image.alp = image.alp.drawGrid(ncols, nrows, 1)
+    inc image.width
+    inc image.height
+    
