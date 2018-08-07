@@ -1,7 +1,4 @@
-<img src="https://github.com/prideout/nile/raw/master/islands.png" height="196">
-
-[![GitHublicense](https://img.shields.io/badge/license-MIT-blue.svg)](
-    https://github.com/prideout/nile/blob/master/LICENSE)
+<img src="https://github.com/prideout/nile/raw/master/islands.png" width="320">
 
 **Nile** generates height maps and images for imaginary islands. It includes:
 

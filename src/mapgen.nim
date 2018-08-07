@@ -144,8 +144,7 @@ proc generateChild(child: Tile, parent: Tile, subview: Viewport): void =
     child.mask = child.distance.step(child.offset)
     var
         g = createSdf(child.mask)
-        lower = min(g)
-        upper = max(g)
+        (lower, upper) = (min(g), max(g))
     child.distance = (g - lower) / (upper - lower)
     child.offset = (0.0 - lower) / (upper - lower)
     # child.noise += 0.125 * generateGradientNoise(seed, size, size, ENTIRE * 16.0)
