@@ -21,6 +21,7 @@ type Tile* = ref object
     distance*: Grid
     mask*: Grid
     noise*: Grid
+    elevation*: Grid
     index*: Vec3ii
     offset*: float
     map: Map
@@ -117,6 +118,9 @@ proc generateRootTile*(resolution, seed: int): Tile =
         upper = max(g)
     result.distance = (g - lower) / (upper - lower)
     result.offset = (result.offset - lower) / (upper - lower)
+    result.elevation = result.distance - result.offset
+    result.elevation -= 0.5 * result.elevation * result.noise
+    result.elevation += 0.5
 
 proc generateChild(child: Tile, parent: Tile, subview: Viewport): void =
     let
@@ -146,6 +150,9 @@ proc generateChild(child: Tile, parent: Tile, subview: Viewport): void =
     child.offset = (0.0 - lower) / (upper - lower)
     # child.noise += 0.125 * generateGradientNoise(seed, size, size, ENTIRE * 16.0)
     # child.distance += 0.01 * generateGradientNoise(seed, size, size, ENTIRE * 16.0)
+    child.elevation = child.distance - child.offset
+    child.elevation -= 0.5 * child.elevation * child.noise
+    child.elevation += 0.5
 
 proc generateChild*(parent: Tile, index: Vec3ii): Tile =
     assert(index.z == parent.index.z + 1)

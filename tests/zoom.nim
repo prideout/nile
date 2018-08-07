@@ -33,10 +33,7 @@ proc showPNG(fname: string): void =
         echo fmt"Generated {fname}"
 
 proc render(tile: Tile, fname: string, gradient: ColorGradient): void =
-    var el = tile.distance - tile.offset
-    for i in 0..<el.data.len():
-        el.data[i] -= 0.5 * el.data[i] * tile.noise.data[i]
-    var image = newImageFromLuminance(0.5 + el)
+    var image = newImageFromLuminance(tile.elevation)
     image.applyColorGradient(gradient)
     image.resize(VIEWPORT_RESOLUTION, VIEWPORT_RESOLUTION, FilterHermite)
     image.drawGrid(1, 1)

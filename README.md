@@ -20,13 +20,6 @@ will enable the release flag, creating a very fast native executable.
 
 # INFINITE ISLAND
 
-    Add an "elevation" field so that we can cache the results of:
-
-        var el = tile.distance - tile.offset
-        for i in 0..<el.data.len():
-            el.data[i] -= 0.5 * el.data[i] * tile.noise.data[i]
-        el += 0.5
-
     TO ACHIEVE INFINITE ZOOM, SIMPLY ADD NOISE TO DISTANCE AND RENORM.
 
     ---------------------------------------
