@@ -1,6 +1,9 @@
 import grid
 import vector
+import distance
 import strformat
+import noise
+import filter
 
 # Vec2f coords are (0,0) at top-left, (1,1) at bottom-right.
 # Vec3ii coords are (x,y,z) are integers where x and y are in 0..<(2^z)
@@ -17,7 +20,9 @@ type Map* = ref object
 type Tile* = ref object
     elevation*: Grid
     mask*: Grid
+    noise*: Grid
     index*: Vec3ii
+    offset*: float
     map: Map
     children: array[4, Tile]
 
@@ -103,8 +108,15 @@ proc generateRootTile*(resolution, seed: int): Tile =
     g /= 16
     g += falloff / 2
     g *= falloff
-    result.elevation = g
+    result.noise = g * 1.0
     result.mask = g.step(0.1)
+    g = createSdf(result.mask)
+    result.offset = 0.0
+    var
+        lower = min(g)
+        upper = max(g)
+    result.elevation = (g - lower) / (upper - lower)
+    result.offset = (result.offset - lower) / (upper - lower)
 
 proc generateChild(child: Tile, parent: Tile, subview: Viewport): void =
     let

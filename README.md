@@ -1,4 +1,4 @@
-<img src="https://github.com/prideout/nile/raw/master/islands.png" height="256">
+<img src="https://github.com/prideout/nile/raw/master/islands.png" height="196">
 
 [![GitHublicense](https://img.shields.io/badge/license-MIT-blue.svg)](
     https://github.com/prideout/nile/blob/master/LICENSE)
@@ -11,10 +11,10 @@
 
 To try it out, do:
 
-`nim c --run tests/island.nim`
+`nim c --run tests/islands.nim`
 
-Alternatively, simply invoke `island.nim` directly from your shell since it has a shebang. This will
-enable the release flag, creating a very fast native executable.
+Alternatively, simply invoke `islands.nim` directly from your shell since it has a shebang. This
+will enable the release flag, creating a very fast native executable.
 
 <!--
 
