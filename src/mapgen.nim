@@ -18,7 +18,7 @@ type Map* = ref object
     seed: int
 
 type Tile* = ref object
-    elevation*: Grid
+    distance*: Grid
     mask*: Grid
     noise*: Grid
     index*: Vec3ii
@@ -115,23 +115,37 @@ proc generateRootTile*(resolution, seed: int): Tile =
     var
         lower = min(g)
         upper = max(g)
-    result.elevation = (g - lower) / (upper - lower)
+    result.distance = (g - lower) / (upper - lower)
     result.offset = (result.offset - lower) / (upper - lower)
 
 proc generateChild(child: Tile, parent: Tile, subview: Viewport): void =
     let
         map = child.map
-        # zoom = child.index.z
-        # seed = map.seed + int(zoom)
+        zoom = child.index.z
+        seed = map.seed + int(zoom)
         size = map.resolution
         fsize = float(size)
         left = int(subview.left * fsize)
         top = int(subview.top * fsize)
         right = int(subview.right * fsize)
         bottom = int(subview.bottom * fsize)
-    let e = parent.elevation.crop(left, top, right, bottom)
-    child.elevation = e.resize(size, size, FilterGaussian)
-    child.mask = child.elevation.step(0.1)
+
+    let e = parent.distance.crop(left, top, right, bottom)
+    child.distance = e.resize(size, size, FilterGaussian)
+
+    let n = parent.noise.crop(left, top, right, bottom)
+    child.noise = n.resize(size, size, FilterGaussian)
+
+    child.offset = parent.offset
+    child.mask = child.distance.step(child.offset)
+    var
+        g = createSdf(child.mask)
+        lower = min(g)
+        upper = max(g)
+    child.distance = (g - lower) / (upper - lower)
+    child.offset = (0.0 - lower) / (upper - lower)
+    # child.noise += 0.125 * generateGradientNoise(seed, size, size, ENTIRE * 16.0)
+    # child.distance += 0.01 * generateGradientNoise(seed, size, size, ENTIRE * 16.0)
 
 proc generateChild*(parent: Tile, index: Vec3ii): Tile =
     assert(index.z == parent.index.z + 1)

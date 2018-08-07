@@ -4,7 +4,7 @@ import strformat
 import nile
 import os
 
-const VIEWPORT_RESOLUTION = 384
+const VIEWPORT_RESOLUTION = 256
 const TILE_RESOLUTION = 2048
 const SEED = 3
 
@@ -32,15 +32,20 @@ proc showPNG(fname: string): void =
     else:
         echo fmt"Generated {fname}"
 
+proc render(tile: Tile, fname: string, gradient: ColorGradient): void =
+    var el = tile.distance - tile.offset
+    for i in 0..<el.data.len():
+        el.data[i] -= 0.5 * el.data[i] * tile.noise.data[i]
+    var image = newImageFromLuminance(0.5 + el)
+    image.applyColorGradient(gradient)
+    image.resize(VIEWPORT_RESOLUTION, VIEWPORT_RESOLUTION, FilterHermite)
+    image.drawGrid(1, 1)
+    image.savePNG(fname)
+    showPNG(fname)
+
 let
-    tile = generateRootTile(TILE_RESOLUTION, SEED)
     gradient = newColorGradient(STEPPED_PALETTE)
-
-var image = newImageFromLuminance(0.5 + tile.elevation - tile.offset)
-image.applyColorGradient(gradient)
-image.resize(VIEWPORT_RESOLUTION, VIEWPORT_RESOLUTION, FilterHermite)
-
-let fname = fmt"island.png"
-image.drawGrid(1, 1)
-image.savePNG(fname)
-showPNG(fname)
+    parent = generateRootTile(TILE_RESOLUTION, SEED)
+    child = generateChild(parent, (0'i64, 0'i64, 1'i64))
+render(parent, fmt"frame-000.png", gradient)
+render(child, fmt"frame-001.png", gradient)
