@@ -133,25 +133,19 @@ proc generateChild(child: Tile, parent: Tile, subview: Viewport): void =
         top = int(subview.top * fsize)
         right = int(subview.right * fsize)
         bottom = int(subview.bottom * fsize)
-
-    # let e = parent.distance.crop(left, top, right, bottom)
-    # child.distance = e.resize(size, size, FilterGaussian)
-
-    child.noise = parent.noise.crop(left, top, right, bottom).resize(size, size, FilterGaussian)
-
-    # child.offset = parent.offset
-    # child.mask = child.distance.step(child.offset)
+    child.offset = parent.offset
     child.mask = parent.mask.crop(left, top, right, bottom).resize(size, size, FilterGaussian)
-
-    var
-        g = createSdf(child.mask)
-        (lower, upper) = (min(g), max(g))
+    let g = createSdf(child.mask)
+    let (lower, upper) = (min(g), max(g))
     child.distance = (g - lower) / (upper - lower)
     child.offset = (0.0 - lower) / (upper - lower)
-    child.mask = child.distance.step(child.offset)
 
-    # child.noise += 0.125 * generateGradientNoise(seed, size, size, ENTIRE * 16.0)
-    # child.distance += 0.01 * generateGradientNoise(seed, size, size, ENTIRE * 16.0)
+    # child.noise = 0.05 * generateGradientNoise(seed, size, size, ENTIRE * 4.0)
+    # child.noise = 0.025 * generateGradientNoise(seed, size, size, ENTIRE * 8.0)
+    child.noise = 0.0125 * generateGradientNoise(seed, size, size, ENTIRE * 16.0)
+
+    child.distance += child.noise
+    child.mask = child.distance.step(child.offset)
     child.elevation = child.distance - child.offset
     child.elevation -= 0.5 * child.elevation * child.noise
     child.elevation += 0.5

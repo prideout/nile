@@ -5,27 +5,18 @@ import nile
 import os
 import strformat
 
-const NFRAMES = 12
+const NFRAMES = 40
 const VIEWPORT_RESOLUTION = 256
 const TILE_RESOLUTION = 2048
 const SEED = 3
-const STEPPED_PALETTE = @[
-    000, 0x2C316F ,
-    125, 0x2C316F ,
-    125, 0x46769D ,
-    126, 0x46769D ,
-    127, 0x324060 ,
-    131, 0x324060 ,
-    132, 0x9C907D ,
-    137, 0x9C907D ,
-    137, 0x719457 ,
-    155, 0x719457 , # Light green
-    155, 0x50735A ,
-    180, 0x50735A ,
-    180, 0x9FA881 ,
-    200, 0x9FA881 ,
-    200, 0xFFFFFF ,
-    255, 0xFFFFFF ]
+const SMOOTH_PALETTE = @[
+    000, 0x001070 , # Dark Blue
+    126, 0x2C5A7C , # Light Blue
+    127, 0xE0F0A0 , # Yellow
+    128, 0x5D943C , # Dark Green
+    160, 0x606011 , # Brown
+    200, 0xFFFFFF , # White
+    255, 0xFFFFFF ] # White
 
 # Show the given PNG image if the platform supports it.
 proc showPNG(fname: string): void =
@@ -69,7 +60,7 @@ proc chooseChild(parent: Tile): Vec3ii =
     if flip: results[0] else: results[results.len() - 1]
 
 if isMainModule:
-    let gradient = newColorGradient(STEPPED_PALETTE)
+    let gradient = newColorGradient(SMOOTH_PALETTE)
     var tile = generateRootTile(TILE_RESOLUTION, SEED)
     echo tile.index
     render(tile, fmt"frame-000.png", gradient)

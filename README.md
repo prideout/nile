@@ -17,10 +17,6 @@ will enable the release flag, creating a very fast native executable.
 
 # INFINITE ISLAND
 
-    TO ACHIEVE INFINITE ZOOM, SIMPLY ADD NOISE TO DISTANCE AND RENORM.
-
-    ---------------------------------------
-
     Linearize the color gradient (see newColorGradient)
 
     Magnification of the DF should perhaps be MIN
