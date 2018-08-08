@@ -134,6 +134,11 @@ proc min*(g: Grid): float32 = foldl(g.data, min(a, b), high(float32))
 # Finds the largest value in the entire grid.
 proc max*(g: Grid): float32 = foldl(g.data, max(a, b), low(float32))
 
+# Finds the sum of all pixels.
+proc sum*(g: Grid): float32 = foldl(g.data, a + b, 0.0f)
+
+proc avg*(g: Grid): float32 = sum(g) / float32(g.data.len())
+
 # Sets the pixel value at the given column and row.
 proc setPixel*(g: Grid, x, y: int, k: float32 = 1): void =
     assert(x >= 0 and x < g.width and y >= 0 and y < g.height)

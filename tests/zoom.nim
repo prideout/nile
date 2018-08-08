@@ -34,7 +34,6 @@ proc render(tile: Tile, fname: string, gradient: ColorGradient): void =
     showPNG(fname)
 
 # Find a quadrant that contains coastline.
-var flip = true
 proc chooseChild(parent: Tile): Vec3ii =
     var results = newSeq[Vec3ii]()
     let
@@ -44,11 +43,17 @@ proc chooseChild(parent: Tile): Vec3ii =
         el = parent.elevation
         (w2, h2) = (el.width, el.height)
         (w1, h1) = (int(w2 / 2), int(h2 / 2))
-        isBest = proc(l, t, r, b: int): bool =
-            let 
-                quadrant = el.crop(l, t, r, b)
-                (lo, hi) = (quadrant.min(), quadrant.max())
-            sgn(lo - 0.5) != sgn(hi - 0.5)
+    var maxTotal = 0.0f        
+    let isBest = proc(l, t, r, b: int): bool =
+        let
+            quadrant = el.crop(l, t, r, b)
+            (lo, hi) = (quadrant.min(), quadrant.max())
+            total = quadrant.sum()
+            hasCoast = sgn(lo - 0.5) != sgn(hi - 0.5)
+        if total > maxTotal and hasCoast:
+            maxTotal = total
+            return true
+        return false
     if isBest(00, 00, w1, h1): results.add (x+0, y+0, z)
     if isBest(w1, 00, w2, h1): results.add (x+1, y+0, z)
     if isBest(00, h1, w1, h2): results.add (x+0, y+1, z)
@@ -56,8 +61,7 @@ proc chooseChild(parent: Tile): Vec3ii =
     if results.len() == 0:
         echo "No coastline."
         quit()
-    flip = not flip
-    if flip: results[0] else: results[results.len() - 1]
+    results[results.len() - 1]
 
 if isMainModule:
     let gradient = newColorGradient(SMOOTH_PALETTE)
