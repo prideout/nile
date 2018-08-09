@@ -17,6 +17,9 @@ will enable the release flag, creating a very fast native executable.
 
 # INFINITE ISLAND
 
+    system call to do
+        ffmpeg -i frame-%03d.png -c:v mpeg4 -vb 20M video.mp4
+
     Linearize the color gradient (see newColorGradient)
 
     Magnification of the DF should perhaps be MIN
@@ -35,7 +38,7 @@ will enable the release flag, creating a very fast native executable.
         import os
         execShellCmd(command: string)
         https://en.wikibooks.org/wiki/FFMPEG_An_Intermediate_Guide/image_sequence
-        ffmpeg -i image-%03d.png video.webm
+        ffmpeg -i frame-%03d.png -c:v mpeg4 -maxrate 5M video.mp4
 
     "Always be minifying"
 

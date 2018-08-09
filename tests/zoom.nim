@@ -13,9 +13,9 @@ const SMOOTH_PALETTE = @[
     000, 0x001070 , # Dark Blue
     126, 0x2C5A7C , # Light Blue
     127, 0xE0F0A0 , # Yellow
-    128, 0x5D943C , # Dark Green
+    129, 0x5D943C , # Green
+    140, 0x5D943C , # Green
     160, 0x606011 , # Brown
-    200, 0xFFFFFF , # White
     255, 0xFFFFFF ] # White
 
 # Show the given PNG image if the platform supports it.
@@ -24,14 +24,6 @@ proc showPNG(fname: string): void =
         discard execShellCmd fmt"imgcat {fname}"
     else:
         echo fmt"Generated {fname}"
-
-# Convert a grid-of-floats into a colorful PNG image.
-proc render(tile: Tile, fname: string, gradient: ColorGradient): void =
-    var image = newImageFromLuminance(tile.elevation)
-    image.applyColorGradient(gradient)
-    image.resize(VIEWPORT_RESOLUTION, VIEWPORT_RESOLUTION, FilterHermite)
-    image.savePNG(fname)
-    showPNG(fname)
 
 # Find a quadrant that contains coastline and a good distribution of landmass vs water.
 proc chooseChild(parent: Tile): Vec3ii =
@@ -63,13 +55,52 @@ proc chooseChild(parent: Tile): Vec3ii =
         quit()
     results[results.len() - 1]
 
+let gradient = newColorGradient(SMOOTH_PALETTE)
+
+# Convert an entire grid-of-floats into a colorful PNG image.
+proc renderEntire(tile: Tile, fname: string): void =
+    var image = newImageFromLuminance(tile.elevation)
+    image.applyColorGradient(gradient)
+    image.resize(VIEWPORT_RESOLUTION, VIEWPORT_RESOLUTION, FilterHermite)
+    image.savePNG(fname)
+    showPNG(fname)
+
+# Convert a portion of a grid-of-floats into a colorful PNG image.
+proc renderPartial(tile: Tile, fname: string, vp: Viewport): void =
+    var image = newImageFromLuminance(tile.elevation).crop(vp)
+    image.applyColorGradient(gradient)
+    image.resize(VIEWPORT_RESOLUTION, VIEWPORT_RESOLUTION, FilterHermite)
+    image.savePNG(fname)
+
+# Lerp the viewport from an entire tile to one of its quadrants.
+proc smoothZoom(tile: Tile, targetIndex: Vec3ii, frame: var int): int =
+    var vp: Viewport = (0.0f, 0.0f, 1.0f, 1.0f)
+    let
+        amt = 0.025
+        (parent, child) = (tile.index, targetIndex)
+        nw = child.x == parent.x * 2 + 0 and child.y == parent.y * 2 + 0
+        ne = child.x == parent.x * 2 + 1 and child.y == parent.y * 2 + 0
+        sw = child.x == parent.x * 2 + 0 and child.y == parent.y * 2 + 1
+        se = child.x == parent.x * 2 + 1 and child.y == parent.y * 2 + 1
+    while (vp.right - vp.left) > 0.5:
+        if nw: vp.right -= amt; vp.bottom -= amt
+        if ne: vp.left += amt; vp.bottom -= amt
+        if sw: vp.right -= amt; vp.top += amt
+        if se: vp.left += amt; vp.top += amt
+        renderPartial(tile, fmt"frame-{frame:03}.png", vp)
+        inc frame
+    return frame
+
 if isMainModule:
-    let gradient = newColorGradient(SMOOTH_PALETTE)
     var tile = generateRootTile(TILE_RESOLUTION, SEED)
     echo tile.index
-    render(tile, fmt"frame-000.png", gradient)
-    for frame in 1..NFRAMES:
+    var frame = 0
+    renderEntire(tile, fmt"frame-{frame:03}.png")
+    inc frame
+    for zoom in 1..NFRAMES:
         let childIndex = chooseChild(tile)
         echo childIndex
+        frame = smoothZoom(tile, childIndex, frame)
         tile = generateChild(tile, childIndex)
-        render(tile, fmt"frame-{frame:03}.png", gradient)
+        renderEntire(tile, fmt"frame-{frame:03}.png")
+        inc frame

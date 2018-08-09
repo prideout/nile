@@ -147,7 +147,7 @@ proc generateChild(child: Tile, parent: Tile, subview: Viewport): void =
     child.distance += child.noise
     child.mask = child.distance.step(child.offset)
     child.elevation = child.distance - child.offset
-    child.elevation -= 0.5 * child.elevation * child.noise
+    child.elevation -= 5.0 * child.elevation * child.noise # <== This doesn't really do much.
     child.elevation += 0.5
 
 proc generateChild*(parent: Tile, index: Vec3ii): Tile =

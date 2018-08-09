@@ -148,4 +148,17 @@ proc drawGrid*(image: Image; ncols, nrows: int): void =
     image.alp = image.alp.drawGrid(ncols, nrows, 1)
     inc image.width
     inc image.height
-    
+
+proc crop*(image: Image, vp: Viewport): Image =
+    new(result)
+    let
+        left = int(vp.left * float32(image.width))
+        right = int(vp.right * float32(image.width))
+        top = int(vp.top * float32(image.height))
+        bottom = int(vp.bottom * float32(image.height))
+    result.red = image.red.crop(left, top, right, bottom)
+    result.grn = image.grn.crop(left, top, right, bottom)
+    result.blu = image.blu.crop(left, top, right, bottom)
+    result.alp = image.alp.crop(left, top, right, bottom)
+    result.width = result.red.width
+    result.height = result.red.height
