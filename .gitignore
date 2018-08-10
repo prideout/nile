@@ -4,3 +4,4 @@ nimcache
 tests/*
 !tests/*.nim
 default.profraw
+-islands.png
