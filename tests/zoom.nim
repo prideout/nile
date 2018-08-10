@@ -33,43 +33,6 @@ type Tile = ref object
     map: Map
     children: array[4, Tile]
 
-# Transform a coord from a parent tile space into its child's tile space.
-proc transform(pt: Vec2f, fromTile: Vec3ii, toTile: Vec3ii): Vec2f =
-    assert toTile.z == fromTile.z + 1
-    let
-        nw = (fromTile.x * 2, fromTile.y * 2, fromTile.z + 1)
-        ne = (fromTile.x * 2 + 1, fromTile.y * 2, fromTile.z + 1)
-        sw = (fromTile.x * 2, fromTile.y * 2 + 1, fromTile.z + 1)
-        se = (fromTile.x * 2 + 1, fromTile.y * 2 + 1, fromTile.z + 1)
-    if toTile == nw: return pt * 2.0f
-    if toTile == sw: return (pt.x * 2.0f, (pt.y - 0.5f) * 2.0f)
-    if toTile == ne: return ((pt.x - 0.5f) * 2.0f, pt.y * 2.0f)
-    if toTile == se: return ((pt.x - 0.5f) * 2.0f, (pt.y - 0.5f) * 2.0f)
-    assert(false)
-
-proc getTileCenter(tile: Tile): Vec2f =
-    let
-        ntiles = float(1 shl tile.index.z)
-        x = (0.5 + float(tile.index.x)) / ntiles
-        y = (0.5 + float(tile.index.y)) / ntiles
-    (float32(x), float32(y))
-
-proc getTileAt(p: Vec2f, z: int64): Vec3ii =
-    let
-        ntiles = float(1 shl z)
-        x = int64(p.x * ntiles)
-        y = int64(p.y * ntiles)
-    (x, y, z)
-
-proc getTileBounds(tile: Tile): Viewport =
-    let
-        ntiles = float(1 shl tile.index.z)
-        x0 = (0.0 + float(tile.index.x)) / ntiles
-        y0 = (0.0 + float(tile.index.y)) / ntiles
-        x1 = (1.0 + float(tile.index.x)) / ntiles
-        y1 = (1.0 + float(tile.index.y)) / ntiles
-    (float32(x0), float32(y0), float32(x1), float32(y1))
-
 proc generateFalloff(size: int, view: Viewport): Grid =
     result = newGrid(size, size)
     let

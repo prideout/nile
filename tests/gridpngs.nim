@@ -1,6 +1,4 @@
-#!/usr/bin/env nim c -d:release --boundChecks:off --verbosity:0 --run
-
-#!/usr/bin/env nim c --debugger:native --run
+#!/usr/bin/env nim c --run
 
 import nile
 

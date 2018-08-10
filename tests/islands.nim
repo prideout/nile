@@ -67,43 +67,6 @@ type Tile = ref object
     map: Map
     children: array[4, Tile]
 
-# Transform a coord from a parent tile space into its child's tile space.
-proc transform(pt: Vec2f, fromTile: Vec3ii, toTile: Vec3ii): Vec2f =
-    assert toTile.z == fromTile.z + 1
-    let
-        nw = (fromTile.x * 2, fromTile.y * 2, fromTile.z + 1)
-        ne = (fromTile.x * 2 + 1, fromTile.y * 2, fromTile.z + 1)
-        sw = (fromTile.x * 2, fromTile.y * 2 + 1, fromTile.z + 1)
-        se = (fromTile.x * 2 + 1, fromTile.y * 2 + 1, fromTile.z + 1)
-    if toTile == nw: return pt * 2.0f
-    if toTile == sw: return (pt.x * 2.0f, (pt.y - 0.5f) * 2.0f)
-    if toTile == ne: return ((pt.x - 0.5f) * 2.0f, pt.y * 2.0f)
-    if toTile == se: return ((pt.x - 0.5f) * 2.0f, (pt.y - 0.5f) * 2.0f)
-    assert(false)
-
-proc getTileCenter(tile: Tile): Vec2f =
-    let
-        ntiles = float(1 shl tile.index.z)
-        x = (0.5 + float(tile.index.x)) / ntiles
-        y = (0.5 + float(tile.index.y)) / ntiles
-    (float32(x), float32(y))
-
-proc getTileAt(p: Vec2f, z: int64): Vec3ii =
-    let
-        ntiles = float(1 shl z)
-        x = int64(p.x * ntiles)
-        y = int64(p.y * ntiles)
-    (x, y, z)
-
-proc getTileBounds(tile: Tile): Viewport =
-    let
-        ntiles = float(1 shl tile.index.z)
-        x0 = (0.0 + float(tile.index.x)) / ntiles
-        y0 = (0.0 + float(tile.index.y)) / ntiles
-        x1 = (1.0 + float(tile.index.x)) / ntiles
-        y1 = (1.0 + float(tile.index.y)) / ntiles
-    (float32(x0), float32(y0), float32(x1), float32(y1))
-
 proc generateFalloff(size: int, view: Viewport): Grid =
     result = newGrid(size, size)
     let
@@ -161,56 +124,6 @@ proc generateRootTile(resolution, seed: int): Tile =
     result.elevation = result.distance - result.offset
     result.elevation -= 0.5 * result.elevation * result.noise
     result.elevation += 0.5
-
-proc generateChild(child: Tile, parent: Tile, subview: Viewport): void =
-    let
-        map = child.map
-        zoom = child.index.z
-        seed = map.seed + int(zoom)
-        size = map.resolution
-        fsize = float(size)
-        left = int(subview.left * fsize)
-        top = int(subview.top * fsize)
-        right = int(subview.right * fsize)
-        bottom = int(subview.bottom * fsize)
-    child.offset = parent.offset
-    child.mask = parent.mask.crop(left, top, right, bottom).resize(size, size, FilterGaussian)
-    let g = createSdf(child.mask)
-    let (lower, upper) = (min(g), max(g))
-    child.distance = (g - lower) / (upper - lower)
-    child.offset = (0.0 - lower) / (upper - lower)
-    child.noise = 0.0125 * generateGradientNoise(seed, size, size, ENTIRE * 16.0)
-    child.distance += child.noise
-    child.mask = child.distance.step(child.offset)
-    child.elevation = child.distance - child.offset
-    child.elevation -= 5.0 * child.elevation * child.noise # <== This doesn't really do much.
-    child.elevation += 0.5
-
-proc generateChild(parent: Tile, index: Vec3ii): Tile =
-    assert(index.z == parent.index.z + 1)
-    let
-        west = parent.index.x * 2
-        east = west + 1
-        north = parent.index.y * 2
-        south = north + 1
-    result = new Tile
-    result.index = index
-    result.map = parent.map
-    if index.x == west and index.y == north:
-        parent.children[0] = result
-        generateChild(result, parent, (0.0f, 0.0f, 0.5f, 0.5f))
-    elif index.x == east and index.y == north:
-        parent.children[1] = result
-        generateChild(result, parent, (0.5f, 0.0f, 1.0f, 0.5f))
-    elif index.x == west and index.y == south:
-        parent.children[2] = result
-        generateChild(result, parent, (0.0f, 0.5f, 0.5f, 1.0f))
-    elif index.x == east and index.y == south:
-        parent.children[3] = result
-        generateChild(result, parent, (0.5f, 0.5f, 1.0f, 1.0f))
-    else:
-        echo fmt"Cannot generate child {index.x:03} {index.y:03} {index.z:03}"
-        assert(false)
 
 proc showPNG(fname: string): void =
     if 0 == execShellCmd fmt"which -s imgcat":
