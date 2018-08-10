@@ -17,9 +17,6 @@ will enable the release flag, creating a very fast native executable.
 
 # INFINITE ISLAND
 
-    system call to do
-        ffmpeg -i frame-%03d.png -c:v mpeg4 -vb 20M video.mp4
-
     Linearize the color gradient (see newColorGradient)
 
     Magnification of the DF should perhaps be MIN

@@ -6,9 +6,10 @@ import os
 import strformat
 
 const NFRAMES = 40
-const VIEWPORT_RESOLUTION = 256
+const VIEWPORT_RESOLUTION = 320
 const TILE_RESOLUTION = 2048
 const SEED = 3
+const ZOOM_SPEED = 0.025
 const SMOOTH_PALETTE = @[
     000, 0x001070 , # Dark Blue
     126, 0x2C5A7C , # Light Blue
@@ -76,7 +77,7 @@ proc renderPartial(tile: Tile, fname: string, vp: Viewport): void =
 proc smoothZoom(tile: Tile, targetIndex: Vec3ii, frame: var int): int =
     var vp: Viewport = (0.0f, 0.0f, 1.0f, 1.0f)
     let
-        amt = 0.025
+        amt = ZOOM_SPEED
         (parent, child) = (tile.index, targetIndex)
         nw = child.x == parent.x * 2 + 0 and child.y == parent.y * 2 + 0
         ne = child.x == parent.x * 2 + 1 and child.y == parent.y * 2 + 0
@@ -104,3 +105,6 @@ if isMainModule:
         tile = generateChild(tile, childIndex)
         renderEntire(tile, fmt"frame-{frame:03}.png")
         inc frame
+
+    discard execShellCmd "ffmpeg -i frame-%03d.png -c:v mpeg4 -vb 150M video.mp4"
+    discard execShellCmd "rm frame*.png"
